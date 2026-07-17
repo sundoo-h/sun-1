@@ -54,12 +54,31 @@
     </div>
   </div>
 
-  <!-- Lightbox modal -->
-  <div id="lightbox-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
-    <button id="btn-close-lightbox" class="absolute top-4 right-4 text-white hover:text-gray-300 font-bold text-3xl">&times;</button>
-    <div class="text-white text-xs font-bold bg-black/60 px-4 py-1.5 rounded-full mb-3 max-w-xl text-center truncate" id="lightbox-title">이미지명</div>
-    <div class="relative max-w-full max-h-[85vh] overflow-auto flex justify-center items-start">
-      <img id="lightbox-img" src="" class="max-w-none rounded-lg border border-gray-800 select-none" />
+  <!-- Lightbox modal (최근 3일치 병렬 비교 뷰어 구조) -->
+  <div id="lightbox-modal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-md flex flex-col justify-between z-50 p-4 select-none">
+    <!-- Header -->
+    <div class="w-full flex justify-between items-center text-white px-4 py-3 border-b border-gray-800">
+      <div class="text-sm font-bold flex items-center gap-2">
+        <span class="bg-orange-500 text-xs px-2.5 py-0.5 rounded font-black text-white">비교 뷰어</span>
+        <span id="lightbox-title" class="font-extrabold text-base">키워드명</span>
+      </div>
+      <div class="flex items-center gap-6 text-[11px] font-bold text-gray-400">
+        <span>좌우(← / →) 키: 이전/다음 키워드</span>
+        <span>위아래(↑ / ↓) 키: 확대/축소</span>
+        <button id="btn-close-lightbox" class="text-white hover:text-gray-300 text-3xl focus:outline-none ml-2">&times;</button>
+      </div>
+    </div>
+    
+    <!-- Comparison Columns (1~3열 유연 렌더링) -->
+    <div id="lightbox-columns-container" class="flex-1 w-full grid gap-4 p-4 overflow-hidden my-2">
+      <!-- 3 Columns will be rendered dynamically -->
+    </div>
+    
+    <!-- Footer info -->
+    <div class="w-full text-center text-gray-500 text-[11px] pb-2 font-bold flex items-center justify-center gap-4 border-t border-gray-900 pt-2">
+      <span>배율: <span id="zoom-level-display" class="text-orange-500">100%</span></span>
+      <span>•</span>
+      <span>마우스 휠을 돌리면 3일치 스크린샷이 동일한 비율로 동시 스크롤됩니다.</span>
     </div>
   </div>
 
@@ -77,9 +96,14 @@
       const galleryGrid = document.getElementById("screenshot-gallery-grid");
       const galleryRefreshBtn = document.getElementById("gallery-refresh-btn");
       const lightboxModal = document.getElementById("lightbox-modal");
-      const lightboxImg = document.getElementById("lightbox-img");
       const lightboxTitle = document.getElementById("lightbox-title");
+      const lightboxColsContainer = document.getElementById("lightbox-columns-container");
+      const zoomDisplay = document.getElementById("zoom-level-display");
+      
       let serverOnline = false;
+      let allFetchedFiles = []; // 최근에 갱신된 스크린샷 목록
+      let currentKeyword = ""; // 현재 상세 보기 중인 키워드
+      let zoomLevel = 1.0; // 이미지 줌 레벨
 
       // 스케줄 예약 리스트 로드
       async function loadScheduleConfig() {
@@ -189,19 +213,31 @@
           const res = await fetch(getLocalServerUrl(`/api/local-screenshots?folderPath=${encodeURIComponent(folder)}`));
           if (res.ok) {
             const data = await res.json();
-            if (data.files && data.files.length > 0) {
-              galleryGrid.innerHTML = data.files.map(f => {
+            allFetchedFiles = data.files || [];
+            
+            if (allFetchedFiles.length > 0) {
+              // 중복 키워드는 한 번만 카드 대표로 노출
+              const uniqueKeywords = [];
+              const filteredList = allFetchedFiles.filter(item => {
+                if (!uniqueKeywords.includes(item.keyword)) {
+                  uniqueKeywords.push(item.keyword);
+                  return true;
+                }
+                return false;
+              });
+
+              galleryGrid.innerHTML = filteredList.map(f => {
                 const imgUrl = getLocalServerUrl(`/api/local-screenshots/view?fileName=${encodeURIComponent(f.fileName)}&folderPath=${encodeURIComponent(folder)}`);
                 return `
-                  <div class="group border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex flex-col hover:border-orange-500 hover:shadow-sm transition-all cursor-pointer" onclick="window.openLightbox('${imgUrl}', '${f.fileName}')">
+                  <div class="group border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex flex-col hover:border-orange-500 hover:shadow-sm transition-all cursor-pointer" onclick="window.openLightboxForKeyword('${f.keyword}')">
                     <div class="h-28 overflow-hidden relative bg-white flex items-center justify-center border-b border-gray-100">
                       <img src="${imgUrl}" class="max-w-full max-h-full object-cover group-hover:scale-105 transition-transform duration-200" />
                     </div>
                     <div class="p-2 space-y-1">
                       <div class="text-[11px] font-bold text-gray-800 truncate" title="${f.keyword}">${f.keyword}</div>
                       <div class="text-[9px] text-gray-400 font-semibold flex justify-between">
-                        <span>${f.date}</span>
-                        <span class="text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded">보기</span>
+                        <span>대표 이미지</span>
+                        <span class="text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded">3일비교</span>
                       </div>
                     </div>
                   </div>
@@ -216,18 +252,114 @@
         }
       }
 
-      window.openLightbox = function(url, name) {
-        lightboxImg.src = url;
-        lightboxTitle.textContent = name;
+      // 키워드 기준 최근 3일치 스크린샷 병렬 열기
+      window.openLightboxForKeyword = function(keyword) {
+        currentKeyword = keyword;
+        zoomLevel = 1.0;
+        zoomDisplay.textContent = "100%";
+        
+        // 동일 키워드의 이미지들 추출 후 날짜 내림차순(최신순) 정렬
+        const matchingFiles = allFetchedFiles
+          .filter(f => f.keyword === keyword)
+          .sort((a, b) => b.fileName.localeCompare(a.fileName)); // 문자열 날짜 비교 정렬
+        
+        // 최근 3개만 추출
+        const targetFiles = matchingFiles.slice(0, 3);
+        const folder = "D:\\screenshot";
+        
+        lightboxTitle.textContent = `${keyword} (총 ${matchingFiles.length}회 수집됨)`;
+
+        // 컬럼 개수에 맞춰 grid-cols-X 클래스 변경
+        lightboxColsContainer.className = `flex-1 w-full grid gap-4 p-4 overflow-hidden my-2 grid-cols-${targetFiles.length}`;
+
+        lightboxColsContainer.innerHTML = targetFiles.map(f => {
+          const imgUrl = getLocalServerUrl(`/api/local-screenshots/view?fileName=${encodeURIComponent(f.fileName)}&folderPath=${encodeURIComponent(folder)}`);
+          return `
+            <div class="flex flex-col h-full bg-gray-900/50 rounded-xl border border-gray-850 overflow-hidden">
+              <div class="text-center bg-gray-950 text-orange-400 font-extrabold text-xs py-2.5 border-b border-gray-850 tracking-wider">${f.fileName.replace('.jpg', '').replace(keyword + ' ', '')}</div>
+              <div class="screenshot-scroll-box flex-1 overflow-y-auto p-2 relative select-none">
+                <div class="zoom-wrapper flex justify-center items-start min-h-full">
+                  <img src="${imgUrl}" class="zoom-img max-w-full rounded shadow-lg border border-gray-800" style="transform-origin: top center; transition: transform 0.1s ease;" />
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
         lightboxModal.classList.remove("hidden");
+        document.body.style.overflow = "hidden"; // 메인 스크롤 잠금
+
+        // 3개 박스 동시 마우스 휠 스크롤 연동
+        setTimeout(() => {
+          const scrollBoxes = document.querySelectorAll(".screenshot-scroll-box");
+          scrollBoxes.forEach(box => {
+            box.addEventListener("wheel", (e) => {
+              e.preventDefault();
+              const delta = e.deltaY;
+              scrollBoxes.forEach(b => {
+                b.scrollTop += delta;
+              });
+            }, { passive: false });
+          });
+        }, 100);
       };
 
-      document.getElementById("btn-close-lightbox").addEventListener("click", () => {
+      function closeLightbox() {
         lightboxModal.classList.add("hidden");
-        lightboxImg.src = "";
-      });
+        lightboxColsContainer.innerHTML = "";
+        document.body.style.overflow = "";
+      }
 
+      document.getElementById("btn-close-lightbox").addEventListener("click", closeLightbox);
       galleryRefreshBtn.addEventListener("click", loadGallery);
+
+      // 키워드 네비게이션 및 확대/축소 키보드 이벤트 핸들러
+      function navigateKeyword(direction) {
+        if (!currentKeyword) return;
+        const uniqueKeywords = [...new Set(allFetchedFiles.map(f => f.keyword))];
+        let idx = uniqueKeywords.indexOf(currentKeyword);
+        if (idx === -1) return;
+        
+        idx += direction;
+        // 범위 체크 및 순환 처리
+        if (idx < 0) idx = uniqueKeywords.length - 1;
+        if (idx >= uniqueKeywords.length) idx = 0;
+        
+        window.openLightboxForKeyword(uniqueKeywords[idx]);
+      }
+
+      function adjustZoom(amount) {
+        zoomLevel = Math.max(0.5, Math.min(3.0, zoomLevel + amount));
+        zoomDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+        
+        const zoomImages = document.querySelectorAll(".zoom-img");
+        zoomImages.forEach(img => {
+          img.style.transform = `scale(${zoomLevel})`;
+          // 스케일 확대 시 가로 너비 마진 확보 보완
+          if (zoomLevel > 1.0) {
+            img.style.maxWidth = `${100 / zoomLevel}%`;
+          } else {
+            img.style.maxWidth = "100%";
+          }
+        });
+      }
+
+      // 키보드 방향키 바인딩
+      window.addEventListener("keydown", (e) => {
+        if (lightboxModal.classList.contains("hidden")) return;
+
+        if (e.key === "ArrowLeft") {
+          navigateKeyword(-1);
+        } else if (e.key === "ArrowRight") {
+          navigateKeyword(1);
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          adjustZoom(0.15); // 15%씩 확대
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          adjustZoom(-0.15); // 15%씩 축소
+        }
+      });
 
       // 로컬 백엔드 서버 상태 주기적 체크
       async function checkServerStatus() {
