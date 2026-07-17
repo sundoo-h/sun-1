@@ -91,8 +91,9 @@
 
   <script>
     function getLocalServerUrl(path) {
-      let addr = 'localhost:3888';
-      let url = 'http://' + addr;
+      // 🎯 백엔드 서버 기동 시 localtunnel 외부 주소로 자동 치환되는 타겟 영역
+      let addr = 'http://localhost:3888';
+      let url = addr;
       return url + (path.startsWith('/') ? path : '/' + path);
     }
 
@@ -118,13 +119,15 @@
       // 스케줄 예약 리스트 로드
       async function loadScheduleConfig() {
         try {
-          const res = await fetch(getLocalServerUrl('/api/config'));
+          const res = await fetch(getLocalServerUrl('/api/config'), {
+            headers: { "Bypass-Tunnel-Reminder": "true" } // localtunnel 경고 바이패스
+          });
           if (res.ok) {
             const data = await res.json();
             if (data.success && data.config) {
               renderSchedules(data.config.schedules || []);
               
-              // 🎯 예약 작업에 등록된 모든 네이버 키워드 파싱하여 캐싱
+              // 예약 작업에 등록된 모든 네이버 키워드 파싱하여 캐싱
               const keywordsSet = new Set();
               (data.config.schedules || []).forEach(s => {
                 if (Array.isArray(s.naverKeywords)) {
@@ -217,7 +220,10 @@
           try {
             const res = await fetch(getLocalServerUrl('/api/config'), {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { 
+                "Content-Type": "application/json",
+                "Bypass-Tunnel-Reminder": "true"
+              },
               body: JSON.stringify({ schedules })
             });
             if (res.ok) {
@@ -235,7 +241,9 @@
         if (!serverOnline) return;
         const folder = "D:\\screenshot";
         try {
-          const res = await fetch(getLocalServerUrl(`/api/local-screenshots?folderPath=${encodeURIComponent(folder)}`));
+          const res = await fetch(getLocalServerUrl(`/api/local-screenshots?folderPath=${encodeURIComponent(folder)}`), {
+            headers: { "Bypass-Tunnel-Reminder": "true" }
+          });
           if (res.ok) {
             const data = await res.json();
             allFetchedFiles = data.files || [];
@@ -253,7 +261,6 @@
       // 키워드별 필터 바 생성 (예약 작업 키워드 + 실제 파일 키워드 목록 합집합)
       function renderFilterBar() {
         const foundKeywords = [...new Set(allFetchedFiles.map(f => f.keyword))];
-        // 예약 키워드와 실제 파일 키워드를 모두 합쳐서 유일한 목록 추출
         const unionSet = new Set(["전체", ...registeredKeywords, ...foundKeywords]);
         const uniqueKeywords = [...unionSet];
         
@@ -307,7 +314,7 @@
         }
       }
 
-      // 클릭한 파일을 기준으로 전후 날짜 포함 최대 3개 병렬 비교뷰 띄우기
+      // 클릭한 파일을 기준으로 전후 날짜 포함 최대 3개 병렬 비교 뷰 띄우기
       window.openLightboxForFile = function(fileName) {
         const clickFile = allFetchedFiles.find(f => f.fileName === fileName);
         if (!clickFile) return;
@@ -340,7 +347,6 @@
 
         lightboxColsContainer.innerHTML = targetFiles.map(f => {
           const imgUrl = getLocalServerUrl(`/api/local-screenshots/view?fileName=${encodeURIComponent(f.fileName)}&folderPath=${encodeURIComponent(folder)}`);
-          // 당일 기준일은 테두리 강조 표시 추가
           const isCurrent = f.fileName === fileName;
           const borderClass = isCurrent ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-850';
           const labelBadge = isCurrent ? '<span class="bg-orange-500 text-white text-[9px] px-1.5 py-0.5 rounded ml-1.5 font-black text-center">기준일</span>' : '';
@@ -361,7 +367,7 @@
         }).join("");
 
         lightboxModal.classList.remove("hidden");
-        document.body.style.overflow = "hidden"; // 메인 스크롤 잠금
+        document.body.style.overflow = "hidden";
 
         // 3개 박스 동시 마우스 휠 스크롤 연동
         setTimeout(() => {
@@ -427,22 +433,25 @@
         if (lightboxModal.classList.contains("hidden")) return;
 
         if (e.key === "ArrowLeft") {
-          navigateFileDate(-1); // 이전 날짜로 기준일 한 칸 이동
+          navigateFileDate(-1);
         } else if (e.key === "ArrowRight") {
-          navigateFileDate(1); // 다음 날짜로 기준일 한 칸 이동
+          navigateFileDate(1);
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
-          adjustZoom(0.15); // 15% 확대
+          adjustZoom(0.15);
         } else if (e.key === "ArrowDown") {
           e.preventDefault();
-          adjustZoom(-0.15); // 15% 축소
+          adjustZoom(-0.15);
         }
       });
 
       // 로컬 백엔드 서버 상태 주기적 체크
       async function checkServerStatus() {
         try {
-          await fetch(getLocalServerUrl('/api/config'), { method: "GET" });
+          await fetch(getLocalServerUrl('/api/config'), { 
+            method: "GET",
+            headers: { "Bypass-Tunnel-Reminder": "true" }
+          });
           if (!serverOnline) {
             serverOnline = true;
             loadGallery();

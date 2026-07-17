@@ -1,8 +1,20 @@
+// localtunnel 모듈 자동 확인 및 설치
+try {
+  require.resolve('localtunnel');
+} catch (e) {
+  console.log("localtunnel 패키지가 없어 자동으로 설치합니다. 잠시만 기다려주세요...");
+  const { execSync } = require('child_process');
+  execSync('npm install localtunnel', { stdio: 'inherit' });
+}
+
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
+const localtunnel = require('localtunnel');
+const { exec } = require('child_process');
+
 const app = express();
 const PORT = 3888;
 app.use(cors());
@@ -64,11 +76,9 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
       const filepath = path.join(saveDir, filename);
       try {
         const page = await browser.newPage();
-        // 🎯 1. 텍스트가 온전히 보이도록 PC 해상도 및 데스크톱 User-Agent 설정
-        await page.setViewport({ width: 1440, height: 900 });
+        await page.setViewport({ width: 1080, height: 900 });
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         
-        // 🎯 2. 네이버 PC 버전 검색 주소로 접속
         const searchUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(cleanKeyword)}`;
         await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
         
@@ -90,10 +100,19 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
           window.scrollTo(0, 0);
         });
 
+        // 푸터(footer) 영역만 화면에서 완벽하게 숨김 처리
+        await page.addStyleTag({
+          content: `
+            #footer, footer, .u_ft, .footer_wrap {
+              display: none !important;
+            }
+          `
+        });
+
         // 대기
         await new Promise(r => setTimeout(r, 2000));
 
-        // 🎯 3. 100% 무료 로컬 돔 조작형 OCR (구글 Vision API 가 필요 없는 무설정 빨간 원 표시 기능)
+        // 🎯 100% 무료 로컬 돔 조작형 OCR (구글 Vision API 가 필요 없는 무설정 빨간 원 표시 기능)
         if (Array.isArray(ocrKeywords) && ocrKeywords.length > 0) {
           await page.evaluate((keywords) => {
             const cleanKeywords = keywords.map(k => k.trim()).filter(k => k.length > 0);
@@ -158,14 +177,7 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
           }, ocrKeywords);
         }
 
-        // 🎯 4. 좌우 여백과 우측 사이드바, 푸터를 제외한 알짜 본문 영역('#content')만 정밀 캡처 (자동 크롭)
-        let screenshotBuffer;
-        const mainContentEl = await page.$('#content');
-        if (mainContentEl) {
-          screenshotBuffer = await mainContentEl.screenshot({ type: 'jpeg', quality: 85 });
-        } else {
-          screenshotBuffer = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 85 });
-        }
+        const screenshotBuffer = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 85 });
         
         fs.writeFileSync(filepath, screenshotBuffer);
         results.push({ keyword: cleanKeyword, platform: 'naver', success: true, skipped: false, path: filepath });
@@ -276,6 +288,47 @@ setInterval(async () => {
     }
   }
 }, 30000);
-app.listen(PORT, () => {
+
+// 🌐 외부 노출용 localtunnel 및 index.html 주소 동기화 푸시 로직
+function updateIndexHtmlUrlAndPush(externalUrl) {
+  const indexPath = path.join(__dirname, 'index.html');
+  if (!fs.existsSync(indexPath)) return;
+  
+  let html = fs.readFileSync(indexPath, 'utf8');
+  const regex = /let addr = '[^']+';/g;
+  html = html.replace(regex, `let addr = '${externalUrl}';`);
+  fs.writeFileSync(indexPath, html, 'utf8');
+  console.log(`[로컬 터널] index.html의 API 주소 갱신: ${externalUrl}`);
+  
+  const gitPath = process.platform === 'win32' ? '"C:\\Program Files\\Git\\cmd\\git.exe"' : 'git';
+  const cmd = `${gitPath} add index.html && ${gitPath} commit -m "Update: Sync dynamic localtunnel API url" && ${gitPath} push`;
+  
+  exec(cmd, { cwd: __dirname }, (error, stdout, stderr) => {
+    if (error) {
+      console.error("[깃 자동푸시 실패]:", error.message);
+      return;
+    }
+    console.log("[깃 자동푸시 성공] 외부 접속 주소가 깃허브(Pages)에 완전히 반영되었습니다!");
+  });
+}
+
+app.listen(PORT, async () => {
   console.log(`수집 백엔드 서버 구동 완료: http://localhost:${PORT}`);
+  try {
+    console.log("외부 터널(localtunnel) 개설을 시도합니다...");
+    const tunnel = await localtunnel({
+      port: PORT,
+      subdomain: 'sundoo-h-capture' // 고유 도메인 할당 시도
+    });
+    const externalUrl = tunnel.url;
+    console.log(`🚀 외부 접속용 공인 주소: ${externalUrl}`);
+    
+    updateIndexHtmlUrlAndPush(externalUrl);
+    
+    tunnel.on('close', () => {
+      console.log("외부 터널이 종료되었습니다.");
+    });
+  } catch (err) {
+    console.error("외부 터널 개설 중 오류:", err.message);
+  }
 });
