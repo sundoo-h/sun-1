@@ -1,19 +1,9 @@
-// localtunnel 모듈 자동 확인 및 설치
-try {
-  require.resolve('localtunnel');
-} catch (e) {
-  console.log("localtunnel 패키지가 없어 자동으로 설치합니다. 잠시만 기다려주세요...");
-  const { execSync } = require('child_process');
-  execSync('npm install localtunnel', { stdio: 'inherit' });
-}
-
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
-const localtunnel = require('localtunnel');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 
 const app = express();
 const PORT = 3888;
@@ -21,6 +11,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 let globalConfig = { schedules: [] };
+
 function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
@@ -38,6 +29,7 @@ function saveConfig() {
   }
 }
 loadConfig();
+
 // OS별 크롬/엣지 자동 브라우저 경로 탐색
 function getBrowserPath() {
   if (process.platform === 'win32') {
@@ -59,6 +51,7 @@ function getKstDateString() {
   const kst = new Date(utc + (9 * 60 * 60 * 1000));
   return `${kst.getFullYear()}.${String(kst.getMonth() + 1).padStart(2, '0')}.${String(kst.getDate()).padStart(2, '0')}`;
 }
+
 // 캡처 목록 순차 실행 함수
 async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
   const browserPath = getBrowserPath();
@@ -289,7 +282,7 @@ setInterval(async () => {
   }
 }, 30000);
 
-// 🌐 외부 노출용 localtunnel 및 index.html 주소 동기화 푸시 로직
+// 🌐 외부 노출용 cloudflared 퀵 터널 및 index.html 주소 동기화 푸시 로직
 function updateIndexHtmlUrlAndPush(externalUrl) {
   const indexPath = path.join(__dirname, 'index.html');
   if (!fs.existsSync(indexPath)) return;
@@ -298,37 +291,65 @@ function updateIndexHtmlUrlAndPush(externalUrl) {
   const regex = /let addr = '[^']+';/g;
   html = html.replace(regex, `let addr = '${externalUrl}';`);
   fs.writeFileSync(indexPath, html, 'utf8');
-  console.log(`[로컬 터널] index.html의 API 주소 갱신: ${externalUrl}`);
+  console.log(`[클라우드플레어 터널] index.html의 API 주소 갱신: ${externalUrl}`);
   
   const gitPath = process.platform === 'win32' ? '"C:\\Program Files\\Git\\cmd\\git.exe"' : 'git';
-  const cmd = `${gitPath} add index.html && ${gitPath} commit -m "Update: Sync dynamic localtunnel API url" && ${gitPath} push`;
+  const cmd = `${gitPath} add index.html && ${gitPath} commit -m "Update: Sync dynamic cloudflare tunnel API url" && ${gitPath} push`;
   
   exec(cmd, { cwd: __dirname }, (error, stdout, stderr) => {
     if (error) {
       console.error("[깃 자동푸시 실패]:", error.message);
       return;
     }
-    console.log("[깃 자동푸시 성공] 외부 접속 주소가 깃허브(Pages)에 완전히 반영되었습니다!");
+    console.log("[깃 자동푸시 성공] 외부 접속 주소가 깃허브(Pages)에 안전하게 배포되었습니다!");
   });
+}
+
+let cloudflareProcess = null;
+function startCloudflareTunnel() {
+  console.log("☁️ Cloudflare Quick Tunnel 개설 시도 중...");
+  
+  const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  cloudflareProcess = spawn(cmd, ['-y', 'cloudflared', 'tunnel', '--url', `http://localhost:${PORT}`]);
+  
+  cloudflareProcess.stdout.on('data', (data) => {
+    handleTunnelLog(data.toString());
+  });
+  
+  cloudflareProcess.stderr.on('data', (data) => {
+    handleTunnelLog(data.toString());
+  });
+  
+  cloudflareProcess.on('close', (code) => {
+    console.log(`Cloudflare Tunnel 프로세스 종료. 코드: ${code}`);
+  });
+}
+
+let tunnelInitialized = false;
+function handleTunnelLog(log) {
+  if (tunnelInitialized) return;
+  
+  // trycloudflare.com 외부 공인 도메인 검출
+  const match = log.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+  if (match) {
+    tunnelInitialized = true;
+    const externalUrl = match[0];
+    console.log(`🚀 Cloudflare 공인 주소 개설 성공 (경고창 없음): ${externalUrl}`);
+    
+    updateIndexHtmlUrlAndPush(externalUrl);
+  }
 }
 
 app.listen(PORT, async () => {
   console.log(`수집 백엔드 서버 구동 완료: http://localhost:${PORT}`);
-  try {
-    console.log("외부 터널(localtunnel) 개설을 시도합니다...");
-    const tunnel = await localtunnel({
-      port: PORT,
-      subdomain: 'sundoo-h-capture' // 고유 도메인 할당 시도
-    });
-    const externalUrl = tunnel.url;
-    console.log(`🚀 외부 접속용 공인 주소: ${externalUrl}`);
-    
-    updateIndexHtmlUrlAndPush(externalUrl);
-    
-    tunnel.on('close', () => {
-      console.log("외부 터널이 종료되었습니다.");
-    });
-  } catch (err) {
-    console.error("외부 터널 개설 중 오류:", err.message);
-  }
+  startCloudflareTunnel();
+});
+
+// 프로세스 종료 시 백그라운드 터널링 프로세스도 함께 살해
+process.on('exit', () => {
+  if (cloudflareProcess) cloudflareProcess.kill();
+});
+process.on('SIGINT', () => {
+  if (cloudflareProcess) cloudflareProcess.kill();
+  process.exit();
 });
