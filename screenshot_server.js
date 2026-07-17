@@ -127,13 +127,12 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
               const parent = node.parentNode;
               if (!parent) continue;
               const parentTagName = parent.tagName.toUpperCase();
-              // 스타일이나 스크립트 및 타겟 태그 필터링
               if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'].includes(parentTagName)) continue;
 
               for (const word of cleanKeywords) {
                 if (text.includes(word)) {
                   nodesToReplace.push({ node, word });
-                  break; // 노드당 한 매칭만
+                  break; 
                 }
               }
             }
@@ -220,10 +219,18 @@ app.get('/api/local-screenshots', (req, res) => {
       if (['.png', '.jpg', '.jpeg'].includes(ext)) {
         const filePath = path.join(folderPath, file);
         const stats = fs.statSync(filePath);
+        
+        const baseName = path.basename(file, ext);
+        // 🎯 정규식으로 끝부분 공백+날짜(YYYY.MM.DD) 제거해 원본 전체 키워드 추출
+        const keyword = baseName.replace(/\s\d{4}\.\d{2}\.\d{2}$/, '').trim();
+        // 실제 수집 일자 파싱
+        const dateMatch = baseName.match(/\d{4}\.\d{2}\.\d{2}$/);
+        const dateStr = dateMatch ? dateMatch[0] : getKstDateString();
+
         result.push({
           fileName: file,
-          keyword: path.basename(file, ext).split(' ')[0],
-          date: getKstDateString(),
+          keyword: keyword,
+          date: dateStr,
           mtime: stats.mtimeMs
         });
       }
