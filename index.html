@@ -97,6 +97,22 @@
       return url + (path.startsWith('/') ? path : '/' + path);
     }
 
+    // 🎯 localtunnel 피싱 방지용 첫 접속 경고 화면을 완벽히 우회하여 이미지만 안전하게 긁어오는 보안 로더
+    async function loadSecureImage(imgElement, imageUrl) {
+      try {
+        const res = await fetch(imageUrl, {
+          headers: { "Bypass-Tunnel-Reminder": "true" }
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const objectURL = URL.createObjectURL(blob);
+          imgElement.src = objectURL;
+        }
+      } catch (e) {
+        console.error("보안 이미지 로드 실패:", e);
+      }
+    }
+
     function setupKeywordScreenshot() {
       const statusText = document.getElementById("screenshot-server-status");
       const scheduleSaveBtn = document.getElementById("schedule-save-btn");
@@ -120,7 +136,7 @@
       async function loadScheduleConfig() {
         try {
           const res = await fetch(getLocalServerUrl('/api/config'), {
-            headers: { "Bypass-Tunnel-Reminder": "true" } // localtunnel 경고 바이패스
+            headers: { "Bypass-Tunnel-Reminder": "true" }
           });
           if (res.ok) {
             const data = await res.json();
@@ -294,10 +310,18 @@
         if (filteredFiles.length > 0) {
           galleryGrid.innerHTML = filteredFiles.map(f => {
             const imgUrl = getLocalServerUrl(`/api/local-screenshots/view?fileName=${encodeURIComponent(f.fileName)}&folderPath=${encodeURIComponent(folder)}`);
+            const cardId = `img-card-${Math.random().toString(36).substr(2, 9)}`;
+            
+            // 🎯 비동기로 Bypass 헤더 탑재하여 이미지 로딩 가동
+            setTimeout(() => {
+              const el = document.getElementById(cardId);
+              if (el) loadSecureImage(el, imgUrl);
+            }, 0);
+
             return `
               <div class="group border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex flex-col hover:border-orange-500 hover:shadow-sm transition-all cursor-pointer" onclick="window.openLightboxForFile('${f.fileName}')">
                 <div class="h-28 overflow-hidden relative bg-white flex items-center justify-center border-b border-gray-100">
-                  <img src="${imgUrl}" class="max-w-full max-h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                  <img id="${cardId}" class="max-w-full max-h-full object-cover group-hover:scale-105 transition-transform duration-200" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f3f4f6'/></svg>" />
                 </div>
                 <div class="p-2 space-y-1">
                   <div class="text-[11px] font-bold text-gray-800 truncate" title="${f.keyword}">${f.keyword}</div>
@@ -351,6 +375,14 @@
           const borderClass = isCurrent ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-850';
           const labelBadge = isCurrent ? '<span class="bg-orange-500 text-white text-[9px] px-1.5 py-0.5 rounded ml-1.5 font-black text-center">기준일</span>' : '';
           
+          const lightboxImgId = `lightbox-img-${Math.random().toString(36).substr(2, 9)}`;
+          
+          // 🎯 라이트박스 안의 큰 이미지도 비동기로 Bypass 로딩 적용
+          setTimeout(() => {
+            const el = document.getElementById(lightboxImgId);
+            if (el) loadSecureImage(el, imgUrl);
+          }, 0);
+
           return `
             <div class="flex flex-col h-full bg-gray-900/50 rounded-xl border ${borderClass} overflow-hidden">
               <div class="text-center bg-gray-950 text-orange-400 font-extrabold text-xs py-2.5 border-b border-gray-850 tracking-wider flex items-center justify-center">
@@ -359,7 +391,7 @@
               </div>
               <div class="screenshot-scroll-box flex-1 overflow-y-auto p-2 relative select-none">
                 <div class="zoom-wrapper flex justify-center items-start min-h-full">
-                  <img src="${imgUrl}" class="zoom-img max-w-full rounded shadow-lg border border-gray-800" style="transform-origin: top center; transition: transform 0.1s ease;" />
+                  <img id="${lightboxImgId}" class="zoom-img max-w-full rounded shadow-lg border border-gray-800" style="transform-origin: top center; transition: transform 0.1s ease;" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231f2937'/></svg>" />
                 </div>
               </div>
             </div>
