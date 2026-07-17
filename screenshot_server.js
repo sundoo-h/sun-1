@@ -310,7 +310,7 @@ function startCloudflareTunnel() {
   console.log("☁️ Cloudflare Quick Tunnel 개설 시도 중...");
   
   const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  cloudflareProcess = spawn(cmd, ['-y', 'cloudflared', 'tunnel', '--url', `http://localhost:${PORT}`]);
+  cloudflareProcess = spawn(cmd, ['-y', 'cloudflared', 'tunnel', '--url', `http://localhost:${PORT}`], { shell: true });
   
   cloudflareProcess.stdout.on('data', (data) => {
     handleTunnelLog(data.toString());
