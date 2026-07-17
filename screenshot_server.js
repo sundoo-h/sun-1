@@ -64,16 +64,19 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
       const filepath = path.join(saveDir, filename);
       try {
         const page = await browser.newPage();
-        await page.setViewport({ width: 375, height: 812, isMobile: true, hasTouch: true });
-        await page.setUserAgent('Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36');
-        const searchUrl = `https://m.search.naver.com/search.naver?query=${encodeURIComponent(cleanKeyword)}`;
+        // 🎯 1. 텍스트가 온전히 보이도록 PC 해상도 및 데스크톱 User-Agent 설정
+        await page.setViewport({ width: 1440, height: 900 });
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
+        // 🎯 2. 네이버 PC 버전 검색 주소로 접속
+        const searchUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(cleanKeyword)}`;
         await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
         
         // 페이지 하단까지 부드러운 스크롤 실행
         await page.evaluate(async () => {
           await new Promise((resolve) => {
             let totalHeight = 0;
-            const distance = 80;
+            const distance = 100;
             const timer = setInterval(() => {
               const scrollHeight = document.body.scrollHeight;
               window.scrollBy(0, distance);
@@ -82,32 +85,15 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
                 clearInterval(timer);
                 resolve();
               }
-            }, 100);
+            }, 80);
           });
           window.scrollTo(0, 0);
         });
 
-        // ✂️ CSS 주입을 통한 좌측/우측 여백, 사이드바 위젯, 하단 푸터 제거 (본문 영역만 유지)
-        await page.addStyleTag({
-          content: `
-            .sub_area, #sub_area, .right_area, #right_area, .aside, aside, .footer, footer, #footer, .u_ft {
-              display: none !important;
-            }
-            body, #wrap, #container, #ct, .contents {
-              width: 100% !important;
-              max-width: 100% !important;
-              min-width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              box-shadow: none !important;
-            }
-          `
-        });
-
-        // 대기 (waitForTimeout 제거 후 호환성 유지)
+        // 대기
         await new Promise(r => setTimeout(r, 2000));
 
-        // 🎯 100% 무료 로컬 돔 조작형 OCR (구글 Vision API 가 필요 없는 무설정 빨간 원 표시 기능)
+        // 🎯 3. 100% 무료 로컬 돔 조작형 OCR (구글 Vision API 가 필요 없는 무설정 빨간 원 표시 기능)
         if (Array.isArray(ocrKeywords) && ocrKeywords.length > 0) {
           await page.evaluate((keywords) => {
             const cleanKeywords = keywords.map(k => k.trim()).filter(k => k.length > 0);
@@ -172,7 +158,14 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
           }, ocrKeywords);
         }
 
-        const screenshotBuffer = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 85 });
+        // 🎯 4. 좌우 여백과 우측 사이드바, 푸터를 제외한 알짜 본문 영역('#content')만 정밀 캡처 (자동 크롭)
+        let screenshotBuffer;
+        const mainContentEl = await page.$('#content');
+        if (mainContentEl) {
+          screenshotBuffer = await mainContentEl.screenshot({ type: 'jpeg', quality: 85 });
+        } else {
+          screenshotBuffer = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 85 });
+        }
         
         fs.writeFileSync(filepath, screenshotBuffer);
         results.push({ keyword: cleanKeyword, platform: 'naver', success: true, skipped: false, path: filepath });
@@ -187,7 +180,7 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
   }
   return results;
 }
-// Google Cloud Vision API 백업 함수 (미기입 상태이므로 실행되지 않음)
+// Google Cloud Vision API 백업 함수
 async function detectAndDrawRedCircles(buffer, ocrKeywords) {
   return buffer;
 }
@@ -221,9 +214,7 @@ app.get('/api/local-screenshots', (req, res) => {
         const stats = fs.statSync(filePath);
         
         const baseName = path.basename(file, ext);
-        // 🎯 정규식으로 끝부분 공백+날짜(YYYY.MM.DD) 제거해 원본 전체 키워드 추출
         const keyword = baseName.replace(/\s\d{4}\.\d{2}\.\d{2}$/, '').trim();
-        // 실제 수집 일자 파싱
         const dateMatch = baseName.match(/\d{4}\.\d{2}\.\d{2}$/);
         const dateStr = dateMatch ? dateMatch[0] : getKstDateString();
 
