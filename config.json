@@ -3,7 +3,7 @@
     {
       "id": "uttia7mms",
       "enabled": true,
-      "time": "09:00",
+      "time": "04:15",
       "naverKeywords": [
         "노원 하지정맥류",
         "노원 하지정맥",
@@ -78,7 +78,8 @@
         "선두외과내과의원",
         "1stdms.com"
       ],
-      "saveFolder": "D:\\screenshot"
+      "saveFolder": "D:\\screenshot",
+      "lastRunDate": "2026.07.18"
     }
   ]
 }
