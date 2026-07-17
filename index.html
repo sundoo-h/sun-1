@@ -41,37 +41,44 @@
 
     <!-- Gallery / Local screenshot view -->
     <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 space-y-4">
-      <div class="flex justify-between items-center">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <h3 class="text-sm font-bold text-gray-800">🖼️ 수집된 스크린샷 내역 (D:\screenshot)</h3>
         <button id="gallery-refresh-btn" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
           🔄 목록 갱신
         </button>
       </div>
-      <div id="screenshot-gallery-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+      <!-- Keyword Filter Bar -->
+      <div id="keyword-filter-bar" class="flex flex-wrap gap-2 py-2 border-b border-gray-100">
+        <!-- Renders dynamically: "전체" and other keywords -->
+      </div>
+
+      <!-- Screenshot Grid -->
+      <div id="screenshot-gallery-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
         <!-- Rendered dynamically -->
         <div class="col-span-full text-center py-8 text-xs text-gray-400">수집된 스크린샷이 없습니다.</div>
       </div>
     </div>
   </div>
 
-  <!-- Lightbox modal (최근 3일치 병렬 비교 뷰어 구조) -->
+  <!-- Lightbox modal (기준일 전후 3일치 비교 뷰어 구조) -->
   <div id="lightbox-modal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-md flex flex-col justify-between z-50 p-4 select-none">
     <!-- Header -->
     <div class="w-full flex justify-between items-center text-white px-4 py-3 border-b border-gray-800">
       <div class="text-sm font-bold flex items-center gap-2">
-        <span class="bg-orange-500 text-xs px-2.5 py-0.5 rounded font-black text-white">비교 뷰어</span>
-        <span id="lightbox-title" class="font-extrabold text-base">키워드명</span>
+        <span class="bg-orange-500 text-xs px-2.5 py-0.5 rounded font-black text-white text-center">전후 비교 뷰어</span>
+        <span id="lightbox-title" class="font-extrabold text-base">키워드명 (기준일: YYYY.MM.DD)</span>
       </div>
       <div class="flex items-center gap-6 text-[11px] font-bold text-gray-400">
-        <span>좌우(← / →) 키: 이전/다음 키워드</span>
+        <span>좌우(← / →) 키: 이전/다음 날짜로 이동</span>
         <span>위아래(↑ / ↓) 키: 확대/축소</span>
         <button id="btn-close-lightbox" class="text-white hover:text-gray-300 text-3xl focus:outline-none ml-2">&times;</button>
       </div>
     </div>
     
-    <!-- Comparison Columns (1~3열 유연 렌더링) -->
+    <!-- Comparison Columns -->
     <div id="lightbox-columns-container" class="flex-1 w-full grid gap-4 p-4 overflow-hidden my-2">
-      <!-- 3 Columns will be rendered dynamically -->
+      <!-- 1~3 Columns will be rendered dynamically -->
     </div>
     
     <!-- Footer info -->
@@ -95,15 +102,17 @@
       const addScheduleBtn = document.getElementById("add-schedule-btn");
       const galleryGrid = document.getElementById("screenshot-gallery-grid");
       const galleryRefreshBtn = document.getElementById("gallery-refresh-btn");
+      const filterBar = document.getElementById("keyword-filter-bar");
       const lightboxModal = document.getElementById("lightbox-modal");
       const lightboxTitle = document.getElementById("lightbox-title");
       const lightboxColsContainer = document.getElementById("lightbox-columns-container");
       const zoomDisplay = document.getElementById("zoom-level-display");
       
       let serverOnline = false;
-      let allFetchedFiles = []; // 최근에 갱신된 스크린샷 목록
-      let currentKeyword = ""; // 현재 상세 보기 중인 키워드
-      let zoomLevel = 1.0; // 이미지 줌 레벨
+      let allFetchedFiles = []; // 최근 갱신된 스크린샷 파일 전체 목록
+      let currentFile = ""; // 라이트박스에서 열린 기준 파일명
+      let activeFilterKeyword = "전체"; // 활성화된 필터 키워드
+      let zoomLevel = 1.0;
 
       // 스케줄 예약 리스트 로드
       async function loadScheduleConfig() {
@@ -215,68 +224,113 @@
             const data = await res.json();
             allFetchedFiles = data.files || [];
             
-            if (allFetchedFiles.length > 0) {
-              // 중복 키워드는 한 번만 카드 대표로 노출
-              const uniqueKeywords = [];
-              const filteredList = allFetchedFiles.filter(item => {
-                if (!uniqueKeywords.includes(item.keyword)) {
-                  uniqueKeywords.push(item.keyword);
-                  return true;
-                }
-                return false;
-              });
-
-              galleryGrid.innerHTML = filteredList.map(f => {
-                const imgUrl = getLocalServerUrl(`/api/local-screenshots/view?fileName=${encodeURIComponent(f.fileName)}&folderPath=${encodeURIComponent(folder)}`);
-                return `
-                  <div class="group border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex flex-col hover:border-orange-500 hover:shadow-sm transition-all cursor-pointer" onclick="window.openLightboxForKeyword('${f.keyword}')">
-                    <div class="h-28 overflow-hidden relative bg-white flex items-center justify-center border-b border-gray-100">
-                      <img src="${imgUrl}" class="max-w-full max-h-full object-cover group-hover:scale-105 transition-transform duration-200" />
-                    </div>
-                    <div class="p-2 space-y-1">
-                      <div class="text-[11px] font-bold text-gray-800 truncate" title="${f.keyword}">${f.keyword}</div>
-                      <div class="text-[9px] text-gray-400 font-semibold flex justify-between">
-                        <span>대표 이미지</span>
-                        <span class="text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded">3일비교</span>
-                      </div>
-                    </div>
-                  </div>
-                `;
-              }).join("");
-            } else {
-              galleryGrid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-gray-400 font-bold">수집된 스크린샷 파일이 없습니다. (저장위치: D:\\screenshot)</div>`;
-            }
+            // 키워드 필터 버튼 생성
+            renderFilterBar();
+            // 스크린샷 카드 렌더링
+            renderScreenshotGrid();
           }
         } catch (e) {
           galleryGrid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-red-500 font-bold">갤러리 데이터 수집 불가</div>`;
         }
       }
 
-      // 키워드 기준 최근 3일치 스크린샷 병렬 열기
-      window.openLightboxForKeyword = function(keyword) {
-        currentKeyword = keyword;
-        zoomLevel = 1.0;
-        zoomDisplay.textContent = "100%";
-        
-        // 동일 키워드의 이미지들 추출 후 날짜 내림차순(최신순) 정렬
-        const matchingFiles = allFetchedFiles
-          .filter(f => f.keyword === keyword)
-          .sort((a, b) => b.fileName.localeCompare(a.fileName)); // 문자열 날짜 비교 정렬
-        
-        // 최근 3개만 추출
-        const targetFiles = matchingFiles.slice(0, 3);
+      // 키워드별 필터 바 생성
+      function renderFilterBar() {
+        const uniqueKeywords = ["전체", ...new Set(allFetchedFiles.map(f => f.keyword))];
+        filterBar.innerHTML = uniqueKeywords.map(k => {
+          const activeClass = k === activeFilterKeyword 
+            ? "bg-orange-500 text-white" 
+            : "bg-gray-100 text-gray-650 hover:bg-gray-200";
+          return `
+            <button onclick="window.setFilterKeyword('${k}')" class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${activeClass}">
+              ${k}
+            </button>
+          `;
+        }).join("");
+      }
+
+      window.setFilterKeyword = function(keyword) {
+        activeFilterKeyword = keyword;
+        renderFilterBar();
+        renderScreenshotGrid();
+      };
+
+      // 갤러리 그리드에 모든 날짜의 스크린샷 카드 렌더링
+      function renderScreenshotGrid() {
         const folder = "D:\\screenshot";
         
-        lightboxTitle.textContent = `${keyword} (총 ${matchingFiles.length}회 수집됨)`;
+        // 필터링 적용
+        const filteredFiles = activeFilterKeyword === "전체" 
+          ? allFetchedFiles 
+          : allFetchedFiles.filter(f => f.keyword === activeFilterKeyword);
+        
+        if (filteredFiles.length > 0) {
+          galleryGrid.innerHTML = filteredFiles.map(f => {
+            const imgUrl = getLocalServerUrl(`/api/local-screenshots/view?fileName=${encodeURIComponent(f.fileName)}&folderPath=${encodeURIComponent(folder)}`);
+            return `
+              <div class="group border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex flex-col hover:border-orange-500 hover:shadow-sm transition-all cursor-pointer" onclick="window.openLightboxForFile('${f.fileName}')">
+                <div class="h-28 overflow-hidden relative bg-white flex items-center justify-center border-b border-gray-100">
+                  <img src="${imgUrl}" class="max-w-full max-h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                </div>
+                <div class="p-2 space-y-1">
+                  <div class="text-[11px] font-bold text-gray-800 truncate" title="${f.keyword}">${f.keyword}</div>
+                  <div class="text-[9px] text-gray-400 font-semibold flex justify-between">
+                    <span>${f.date}</span>
+                    <span class="text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded">전후비교</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("");
+        } else {
+          galleryGrid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-gray-400 font-bold">해당 키워드로 수집된 스크린샷 파일이 없습니다.</div>`;
+        }
+      }
+
+      // 클릭한 파일을 기준으로 전후 날짜 포함 최대 3개 병렬 비교뷰 띄우기
+      window.openLightboxForFile = function(fileName) {
+        const clickFile = allFetchedFiles.find(f => f.fileName === fileName);
+        if (!clickFile) return;
+
+        currentFile = fileName;
+        zoomLevel = 1.0;
+        zoomDisplay.textContent = "100%";
+
+        const keyword = clickFile.keyword;
+
+        // 동일 키워드의 이미지들 추출 후 날짜 오름차순(오래된 순) 정렬
+        const matchingFiles = allFetchedFiles
+          .filter(f => f.keyword === keyword)
+          .sort((a, b) => a.fileName.localeCompare(b.fileName));
+
+        // 클릭한 파일의 인덱스 확인
+        const clickIdx = matchingFiles.findIndex(f => f.fileName === fileName);
+
+        // 전날(앞날짜), 당일(기준일), 다음날(뒷날짜) 3개 수집
+        const targetFiles = [];
+        if (clickIdx - 1 >= 0) targetFiles.push(matchingFiles[clickIdx - 1]);
+        targetFiles.push(matchingFiles[clickIdx]);
+        if (clickIdx + 1 < matchingFiles.length) targetFiles.push(matchingFiles[clickIdx + 1]);
+
+        const folder = "D:\\screenshot";
+        lightboxTitle.textContent = `${keyword} (기준일: ${clickFile.date})`;
 
         // 컬럼 개수에 맞춰 grid-cols-X 클래스 변경
         lightboxColsContainer.className = `flex-1 w-full grid gap-4 p-4 overflow-hidden my-2 grid-cols-${targetFiles.length}`;
 
         lightboxColsContainer.innerHTML = targetFiles.map(f => {
           const imgUrl = getLocalServerUrl(`/api/local-screenshots/view?fileName=${encodeURIComponent(f.fileName)}&folderPath=${encodeURIComponent(folder)}`);
+          // 당일 기준일은 테두리 강조 표시 추가
+          const isCurrent = f.fileName === fileName;
+          const borderClass = isCurrent ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-850';
+          const labelBadge = isCurrent ? '<span class="bg-orange-500 text-white text-[9px] px-1.5 py-0.5 rounded ml-1.5 font-black">기준일</span>' : '';
+          
           return `
-            <div class="flex flex-col h-full bg-gray-900/50 rounded-xl border border-gray-850 overflow-hidden">
-              <div class="text-center bg-gray-950 text-orange-400 font-extrabold text-xs py-2.5 border-b border-gray-850 tracking-wider">${f.fileName.replace('.jpg', '').replace(keyword + ' ', '')}</div>
+            <div class="flex flex-col h-full bg-gray-900/50 rounded-xl border ${borderClass} overflow-hidden">
+              <div class="text-center bg-gray-950 text-orange-400 font-extrabold text-xs py-2.5 border-b border-gray-850 tracking-wider flex items-center justify-center">
+                <span>${f.date}</span>
+                ${labelBadge}
+              </div>
               <div class="screenshot-scroll-box flex-1 overflow-y-auto p-2 relative select-none">
                 <div class="zoom-wrapper flex justify-center items-start min-h-full">
                   <img src="${imgUrl}" class="zoom-img max-w-full rounded shadow-lg border border-gray-800" style="transform-origin: top center; transition: transform 0.1s ease;" />
@@ -313,19 +367,24 @@
       document.getElementById("btn-close-lightbox").addEventListener("click", closeLightbox);
       galleryRefreshBtn.addEventListener("click", loadGallery);
 
-      // 키워드 네비게이션 및 확대/축소 키보드 이벤트 핸들러
-      function navigateKeyword(direction) {
-        if (!currentKeyword) return;
-        const uniqueKeywords = [...new Set(allFetchedFiles.map(f => f.keyword))];
-        let idx = uniqueKeywords.indexOf(currentKeyword);
+      // 키보드 이벤트: 좌우 키 입력 시 해당 키워드 내에서 이전/다음 날짜로 뷰 이동
+      function navigateFileDate(direction) {
+        if (!currentFile) return;
+        const clickFile = allFetchedFiles.find(f => f.fileName === currentFile);
+        if (!clickFile) return;
+        
+        const keyword = clickFile.keyword;
+        const matchingFiles = allFetchedFiles
+          .filter(f => f.keyword === keyword)
+          .sort((a, b) => a.fileName.localeCompare(b.fileName));
+        
+        let idx = matchingFiles.findIndex(f => f.fileName === currentFile);
         if (idx === -1) return;
         
         idx += direction;
-        // 범위 체크 및 순환 처리
-        if (idx < 0) idx = uniqueKeywords.length - 1;
-        if (idx >= uniqueKeywords.length) idx = 0;
-        
-        window.openLightboxForKeyword(uniqueKeywords[idx]);
+        if (idx >= 0 && idx < matchingFiles.length) {
+          window.openLightboxForFile(matchingFiles[idx].fileName);
+        }
       }
 
       function adjustZoom(amount) {
@@ -335,7 +394,6 @@
         const zoomImages = document.querySelectorAll(".zoom-img");
         zoomImages.forEach(img => {
           img.style.transform = `scale(${zoomLevel})`;
-          // 스케일 확대 시 가로 너비 마진 확보 보완
           if (zoomLevel > 1.0) {
             img.style.maxWidth = `${100 / zoomLevel}%`;
           } else {
@@ -344,20 +402,20 @@
         });
       }
 
-      // 키보드 방향키 바인딩
+      // 키보드 바인딩
       window.addEventListener("keydown", (e) => {
         if (lightboxModal.classList.contains("hidden")) return;
 
         if (e.key === "ArrowLeft") {
-          navigateKeyword(-1);
+          navigateFileDate(-1); // 이전 날짜로 기준일 한 칸 이동
         } else if (e.key === "ArrowRight") {
-          navigateKeyword(1);
+          navigateFileDate(1); // 다음 날짜로 기준일 한 칸 이동
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
-          adjustZoom(0.15); // 15%씩 확대
+          adjustZoom(0.15); // 15% 확대
         } else if (e.key === "ArrowDown") {
           e.preventDefault();
-          adjustZoom(-0.15); // 15%씩 축소
+          adjustZoom(-0.15); // 15% 축소
         }
       });
 
