@@ -106,12 +106,76 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
 
         // 대기 (waitForTimeout 제거 후 호환성 유지)
         await new Promise(r => setTimeout(r, 2000));
+
+        // 🎯 100% 무료 로컬 돔 조작형 OCR (구글 Vision API 가 필요 없는 무설정 빨간 원 표시 기능)
+        if (Array.isArray(ocrKeywords) && ocrKeywords.length > 0) {
+          await page.evaluate((keywords) => {
+            const cleanKeywords = keywords.map(k => k.trim()).filter(k => k.length > 0);
+            if (cleanKeywords.length === 0) return;
+
+            const walker = document.createTreeWalker(
+              document.body,
+              NodeFilter.SHOW_TEXT,
+              null,
+              false
+            );
+
+            const nodesToReplace = [];
+            let node;
+            while (node = walker.nextNode()) {
+              const text = node.nodeValue;
+              const parent = node.parentNode;
+              if (!parent) continue;
+              const parentTagName = parent.tagName.toUpperCase();
+              // 스타일이나 스크립트 및 타겟 태그 필터링
+              if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'].includes(parentTagName)) continue;
+
+              for (const word of cleanKeywords) {
+                if (text.includes(word)) {
+                  nodesToReplace.push({ node, word });
+                  break; // 노드당 한 매칭만
+                }
+              }
+            }
+
+            nodesToReplace.forEach(({ node, word }) => {
+              const parent = node.parentNode;
+              if (!parent) return;
+
+              const text = node.nodeValue;
+              const parts = text.split(word);
+              const fragment = document.createDocumentFragment();
+
+              parts.forEach((part, index) => {
+                if (part) {
+                  fragment.appendChild(document.createTextNode(part));
+                }
+                if (index < parts.length - 1) {
+                  const span = document.createElement('span');
+                  span.textContent = word;
+                  span.style.border = '3px solid red';
+                  span.style.borderRadius = '50%';
+                  span.style.padding = '1px 5px';
+                  span.style.margin = '0 2.5px';
+                  span.style.display = 'inline-block';
+                  span.style.color = 'red';
+                  span.style.fontWeight = 'bold';
+                  fragment.appendChild(span);
+                }
+              });
+
+              try {
+                parent.replaceChild(fragment, node);
+              } catch (e) {
+                // 예외 처리 무시
+              }
+            });
+          }, ocrKeywords);
+        }
+
         const screenshotBuffer = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 85 });
         
-        // OCR 분석 및 빨간 동그라미 그리기
-        const circledBuffer = await detectAndDrawRedCircles(screenshotBuffer, ocrKeywords);
-        
-        fs.writeFileSync(filepath, circledBuffer);
+        fs.writeFileSync(filepath, screenshotBuffer);
         results.push({ keyword: cleanKeyword, platform: 'naver', success: true, skipped: false, path: filepath });
         console.log(`[성공] 캡처 저장됨: ${filepath}`);
       } catch (err) {
@@ -124,38 +188,9 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
   }
   return results;
 }
-// Google Cloud Vision API를 활용한 OCR 매칭 및 빨간 동그라미 표기
+// Google Cloud Vision API 백업 함수 (미기입 상태이므로 실행되지 않음)
 async function detectAndDrawRedCircles(buffer, ocrKeywords) {
-  const apiKey = "YOUR_GOOGLE_VISION_API_KEY_HERE"; 
-  if (apiKey.includes("YOUR_GOOGLE_VISION")) {
-    console.log("[OCR 건너뜀] Vision API 키가 설정되지 않아 원본을 저장합니다.");
-    return buffer;
-  }
-  try {
-    const base64Image = buffer.toString('base64');
-    const googleUrl = `https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(apiKey)}`;
-    
-    const googleResponse = await fetch(googleUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: [{
-          image: { content: base64Image },
-          features: [{ type: 'DOCUMENT_TEXT_DETECTION' }]
-        }]
-      })
-    });
-    if (!googleResponse.ok) return buffer;
-    const data = await googleResponse.json();
-    const response = (data.responses || [])[0] || {};
-    const textAnnotations = response.textAnnotations || [];
-    
-    if (textAnnotations.length === 0) return buffer;
-    return buffer;
-  } catch (err) {
-    console.error("OCR 처리 실패:", err.message);
-    return buffer;
-  }
+  return buffer;
 }
 // API: 설정 로드
 app.get('/api/config', (req, res) => {
