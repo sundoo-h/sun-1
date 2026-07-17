@@ -86,7 +86,26 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
           });
           window.scrollTo(0, 0);
         });
-        await page.waitForTimeout(2000);
+
+        // ✂️ CSS 주입을 통한 좌측/우측 여백, 사이드바 위젯, 하단 푸터 제거 (본문 영역만 유지)
+        await page.addStyleTag({
+          content: `
+            .sub_area, #sub_area, .right_area, #right_area, .aside, aside, .footer, footer, #footer, .u_ft {
+              display: none !important;
+            }
+            body, #wrap, #container, #ct, .contents {
+              width: 100% !important;
+              max-width: 100% !important;
+              min-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+            }
+          `
+        });
+
+        // 대기 (waitForTimeout 제거 후 호환성 유지)
+        await new Promise(r => setTimeout(r, 2000));
         const screenshotBuffer = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 85 });
         
         // OCR 분석 및 빨간 동그라미 그리기
