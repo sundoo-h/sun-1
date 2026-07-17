@@ -10,40 +10,22 @@
   <div class="max-w-4xl mx-auto space-y-6">
     <!-- Header Banner -->
     <div class="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-6 text-white shadow-md">
-      <h1 class="text-2xl font-bold flex items-center gap-2">📸 키워드 검색 스크린샷 수집기</h1>
-      <p class="text-xs text-orange-100 mt-1 font-semibold">로컬 백서버와 연동하여 네이버 및 구글의 특정 키워드 검색 결과를 전체 캡처하고 OCR 체크를 진행합니다.</p>
+      <h1 class="text-2xl font-bold flex items-center gap-2">📸 키워드 검색 스크린샷 수집기 (예약 자동화)</h1>
+      <p class="text-xs text-orange-100 mt-1 font-semibold">로컬 백서버와 연동하여 매일 정해진 시각에 네이버 검색 결과를 D:\screenshot 폴더에 자동 캡처하고 OCR 감지를 수행합니다.</p>
     </div>
-    <!-- Main Controller -->
-    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 space-y-4">
-      <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">⚙️ 실시간 검색 수집 요청</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-bold text-green-600 mb-1.5">네이버(Naver) 대상 키워드 입력 (줄바꿈/쉼표 구분)</label>
-          <textarea id="screenshot-keywords-naver" rows="5" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" placeholder="예시:&#10;부산인테리어&#10;학원 인테리어"></textarea>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-blue-600 mb-1.5">구글(Google) 대상 키워드 입력 (줄바꿈/쉼표 구분)</label>
-          <textarea id="screenshot-keywords-google" rows="5" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" placeholder="예시:&#10;부산인테리어 디자인&#10;학원 리모델링 견적"></textarea>
-        </div>
+
+    <!-- Status indicator -->
+    <div class="flex justify-between items-center bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+      <div id="screenshot-server-status" class="text-[12px] font-bold text-red-500 flex items-center gap-1.5">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+        <span>로컬 백서버 통신 상태 확인 중...</span>
       </div>
-      <div>
-        <label class="block text-xs font-bold text-orange-600 mb-1.5">🎯 OCR 체크 단어 입력 (선택사항, 쉼표 구분)</label>
-        <input type="text" id="screenshot-ocr-keywords" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="예시: 내업체명, mydomain.com (입력 시 이미지 안에서 감지하여 빨간 동그라미 처리)">
-      </div>
-      <div class="flex justify-between items-center pt-2">
-        <div id="screenshot-server-status" class="text-[11px] font-bold text-red-500 flex items-center gap-1">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-          <span>로컬 백서버 통신 상태 확인 중...</span>
-        </div>
-        <button id="screenshot-start-btn" class="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-sm active:scale-[0.98] transition-all">
-          📸 즉시 캡처 시작
-        </button>
-      </div>
+      <div class="text-xs text-gray-500 font-semibold">저장 기본 위치: <span class="font-mono bg-gray-100 px-2 py-0.5 rounded">D:\screenshot</span></div>
     </div>
+
     <!-- Scheduling (예약) -->
     <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 space-y-4">
-      <h3 class="text-sm font-bold text-gray-800">⏰ 매일 지정 시각 자동 수집 설정 (예약 기능)</h3>
+      <h3 class="text-sm font-bold text-gray-800">⏰ 매일 지정 시각 자동 수집 설정 (네이버 전용)</h3>
       <div id="schedule-tasks-container" class="space-y-4 divide-y divide-gray-100">
         <!-- Dynamic Schedule Cards -->
       </div>
@@ -56,37 +38,49 @@
         </button>
       </div>
     </div>
-    <!-- Progress Card -->
-    <div id="screenshot-result-card" class="hidden bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-        <h3 class="font-bold text-gray-800 text-sm">📋 작업 진행 내역 및 결과</h3>
-        <span id="screenshot-summary" class="text-xs font-bold text-orange-500">대기 중</span>
+
+    <!-- Gallery / Local screenshot view -->
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-bold text-gray-800">🖼️ 수집된 스크린샷 내역 (D:\screenshot)</h3>
+        <button id="gallery-refresh-btn" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
+          🔄 목록 갱신
+        </button>
       </div>
-      <div class="p-6 space-y-4">
-        <div id="screenshot-progress-list" class="space-y-2 max-h-[300px] overflow-y-auto"></div>
+      <div id="screenshot-gallery-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Rendered dynamically -->
+        <div class="col-span-full text-center py-8 text-xs text-gray-400">수집된 스크린샷이 없습니다.</div>
       </div>
     </div>
   </div>
+
+  <!-- Lightbox modal -->
+  <div id="lightbox-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
+    <button id="btn-close-lightbox" class="absolute top-4 right-4 text-white hover:text-gray-300 font-bold text-3xl">&times;</button>
+    <div class="text-white text-xs font-bold bg-black/60 px-4 py-1.5 rounded-full mb-3 max-w-xl text-center truncate" id="lightbox-title">이미지명</div>
+    <div class="relative max-w-full max-h-[85vh] overflow-auto flex justify-center items-start">
+      <img id="lightbox-img" src="" class="max-w-none rounded-lg border border-gray-800 select-none" />
+    </div>
+  </div>
+
   <script>
-    // 로컬 백엔드 주소 확인 및 조립
     function getLocalServerUrl(path) {
       let addr = 'localhost:3888';
       let url = 'http://' + addr;
       return url + (path.startsWith('/') ? path : '/' + path);
     }
-    // 대시보드 바인딩 및 AJAX 스크립트
+
     function setupKeywordScreenshot() {
-      const startBtn = document.getElementById("screenshot-start-btn");
-      const naverArea = document.getElementById("screenshot-keywords-naver");
-      const googleArea = document.getElementById("screenshot-keywords-google");
-      const ocrArea = document.getElementById("screenshot-ocr-keywords");
       const statusText = document.getElementById("screenshot-server-status");
-      const resultCard = document.getElementById("screenshot-result-card");
-      const progressList = document.getElementById("screenshot-progress-list");
-      const summary = document.getElementById("screenshot-summary");
       const scheduleSaveBtn = document.getElementById("schedule-save-btn");
       const addScheduleBtn = document.getElementById("add-schedule-btn");
+      const galleryGrid = document.getElementById("screenshot-gallery-grid");
+      const galleryRefreshBtn = document.getElementById("gallery-refresh-btn");
+      const lightboxModal = document.getElementById("lightbox-modal");
+      const lightboxImg = document.getElementById("lightbox-img");
+      const lightboxTitle = document.getElementById("lightbox-title");
       let serverOnline = false;
+
       // 스케줄 예약 리스트 로드
       async function loadScheduleConfig() {
         try {
@@ -101,22 +95,23 @@
           console.error("스케줄 데이터 로드 에러:", e);
         }
       }
+
       function renderSchedules(schedules) {
         const container = document.getElementById("schedule-tasks-container");
         container.innerHTML = "";
         if (schedules.length === 0) {
-          addScheduleTaskUI({ enabled: false, time: "09:00", naverKeywords: [], googleKeywords: [], ocrKeywords: [] });
+          addScheduleTaskUI({ enabled: false, time: "09:00", naverKeywords: [], ocrKeywords: [] });
         } else {
           schedules.forEach(s => addScheduleTaskUI(s));
         }
       }
+
       function addScheduleTaskUI(data) {
         const container = document.getElementById("schedule-tasks-container");
         const id = data.id || Math.random().toString(36).substr(2, 9);
         const enabled = !!data.enabled;
         const time = data.time || "09:00";
         const naverKeywords = Array.isArray(data.naverKeywords) ? data.naverKeywords : [];
-        const googleKeywords = Array.isArray(data.googleKeywords) ? data.googleKeywords : [];
         const ocrKeywords = Array.isArray(data.ocrKeywords) ? data.ocrKeywords : [];
         const html = `
           <div class="schedule-task-item p-4 bg-gray-50/50 rounded-xl space-y-3 relative pt-8" data-id="${id}">
@@ -131,19 +126,13 @@
                 <input type="time" class="task-time px-2 py-1 border rounded-lg text-xs font-bold" value="${time}">
               </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-[11px] font-bold text-green-600 mb-1">네이버 키워드 (줄바꿈/쉼표)</label>
-                <textarea class="task-keywords-naver w-full px-3 py-2 border rounded-lg text-[11px] font-mono" rows="2">${naverKeywords.join('\n')}</textarea>
-              </div>
-              <div>
-                <label class="block text-[11px] font-bold text-blue-600 mb-1">구글 키워드 (줄바꿈/쉼표)</label>
-                <textarea class="task-keywords-google w-full px-3 py-2 border rounded-lg text-[11px] font-mono" rows="2">${googleKeywords.join('\n')}</textarea>
-              </div>
+            <div>
+              <label class="block text-xs font-bold text-green-600 mb-1.5">네이버(Naver) 대상 키워드 입력 (줄바꿈/쉼표 구분)</label>
+              <textarea class="task-keywords-naver w-full px-4 py-3 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" rows="3" placeholder="예시:&#10;부산인테리어&#10;학원 인테리어">${naverKeywords.join('\n')}</textarea>
             </div>
             <div>
-              <label class="block text-[11px] font-bold text-orange-600 mb-1">OCR 체크 단어 (쉼표 구분)</label>
-              <input type="text" class="task-ocr-keywords w-full px-3 py-1.5 border rounded-lg text-[11px]" value="${ocrKeywords.join(', ')}">
+              <label class="block text-xs font-bold text-orange-600 mb-1.5">🎯 OCR 체크 단어 입력 (선택사항, 쉼표 구분)</label>
+              <input type="text" class="task-ocr-keywords w-full px-4 py-2 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="예시: 내업체명, mydomain.com" value="${ocrKeywords.join(', ')}">
             </div>
           </div>
         `;
@@ -155,11 +144,13 @@
         });
         container.appendChild(wrapper);
       }
+
       if (addScheduleBtn) {
         addScheduleBtn.addEventListener("click", () => {
-          addScheduleTaskUI({ enabled: true, time: "09:00", naverKeywords: [], googleKeywords: [], ocrKeywords: [] });
+          addScheduleTaskUI({ enabled: true, time: "09:00", naverKeywords: [], ocrKeywords: [] });
         });
       }
+
       // 스케줄 설정 저장
       if (scheduleSaveBtn) {
         scheduleSaveBtn.addEventListener("click", async () => {
@@ -172,8 +163,9 @@
               enabled: item.querySelector(".task-enabled").checked,
               time: item.querySelector(".task-time").value,
               naverKeywords: item.querySelector(".task-keywords-naver").value.split(/[\n,]/).map(k => k.trim()).filter(k => k),
-              googleKeywords: item.querySelector(".task-keywords-google").value.split(/[\n,]/).map(k => k.trim()).filter(k => k),
-              ocrKeywords: item.querySelector(".task-ocr-keywords").value.split(',').map(k => k.trim()).filter(k => k)
+              googleKeywords: [],
+              ocrKeywords: item.querySelector(".task-ocr-keywords").value.split(',').map(k => k.trim()).filter(k => k),
+              saveFolder: "D:\\screenshot"
             });
           }
           try {
@@ -188,73 +180,75 @@
           }
         });
       }
-      // 즉시 수집 시작
-      startBtn.addEventListener("click", async () => {
-        const naverKeywords = naverArea.value.split(/[\n,]/).map(k => k.trim()).filter(k => k);
-        const googleKeywords = googleArea.value.split(/[\n,]/).map(k => k.trim()).filter(k => k);
-        const ocrKeywords = ocrArea.value.split(/[\n,]/).map(k => k.trim()).filter(k => k);
-        if (naverKeywords.length === 0 && googleKeywords.length === 0) {
-          return alert("수집할 키워드를 1개 이상 입력해 주세요.");
-        }
-        if (!serverOnline) {
-          return alert("로컬 수집 서버(screenshot_server.js)가 작동하고 있지 않습니다.");
-        }
-        resultCard.classList.remove("hidden");
-        progressList.innerHTML = "";
-        summary.textContent = "캡처 연동 구동 중...";
-        startBtn.disabled = true;
-        const tasks = [];
-        naverKeywords.forEach(k => tasks.push({ keyword: k, platform: 'naver' }));
-        googleKeywords.forEach(k => tasks.push({ keyword: k, platform: 'google' }));
-        tasks.forEach((task, idx) => {
-          const item = document.createElement("div");
-          item.id = `ss-item-${idx}`;
-          item.className = "flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-150 text-xs font-bold";
-          item.innerHTML = `<span>[${task.platform === 'naver' ? '네이버' : '구글'}] ${task.keyword}</span><span class="text-gray-400">대기 중...</span>`;
-          progressList.appendChild(item);
-        });
+
+      // 로컬 스크린샷 갤러리 로드
+      async function loadGallery() {
+        if (!serverOnline) return;
+        const folder = "D:\\screenshot";
         try {
-          const res = await fetch(getLocalServerUrl('/api/screenshot'), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ naverKeywords, googleKeywords, ocrKeywords })
-          });
-          const data = await res.json();
-          if (data.success) {
-            data.results.forEach((r, idx) => {
-              const el = document.getElementById(`ss-item-${idx}`);
-              if (el) {
-                if (r.success) {
-                  el.innerHTML = `<span>[${r.platform === 'naver' ? '네이버' : '구글'}] ${r.keyword}</span><span class="text-green-600">✓ 완료</span>`;
-                } else {
-                  el.innerHTML = `<span>[${r.platform === 'naver' ? '네이버' : '구글'}] ${r.keyword}</span><span class="text-red-500">✗ 실패 (${r.error})</span>`;
-                }
-              }
-            });
-            summary.textContent = "모든 수집 완료";
+          const res = await fetch(getLocalServerUrl(`/api/local-screenshots?folderPath=${encodeURIComponent(folder)}`));
+          if (res.ok) {
+            const data = await res.json();
+            if (data.files && data.files.length > 0) {
+              galleryGrid.innerHTML = data.files.map(f => {
+                const imgUrl = getLocalServerUrl(`/api/local-screenshots/view?fileName=${encodeURIComponent(f.fileName)}&folderPath=${encodeURIComponent(folder)}`);
+                return `
+                  <div class="group border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex flex-col hover:border-orange-500 hover:shadow-sm transition-all cursor-pointer" onclick="window.openLightbox('${imgUrl}', '${f.fileName}')">
+                    <div class="h-28 overflow-hidden relative bg-white flex items-center justify-center border-b border-gray-100">
+                      <img src="${imgUrl}" class="max-w-full max-h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                    </div>
+                    <div class="p-2 space-y-1">
+                      <div class="text-[11px] font-bold text-gray-800 truncate" title="${f.keyword}">${f.keyword}</div>
+                      <div class="text-[9px] text-gray-400 font-semibold flex justify-between">
+                        <span>${f.date}</span>
+                        <span class="text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded">보기</span>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join("");
+            } else {
+              galleryGrid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-gray-400 font-bold">수집된 스크린샷 파일이 없습니다. (저장위치: D:\\screenshot)</div>`;
+            }
           }
         } catch (e) {
-          summary.textContent = "에러 발생";
-          alert("수집 실패: " + e.message);
-        } finally {
-          startBtn.disabled = false;
+          galleryGrid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-red-500 font-bold">갤러리 데이터 수집 불가</div>`;
         }
+      }
+
+      window.openLightbox = function(url, name) {
+        lightboxImg.src = url;
+        lightboxTitle.textContent = name;
+        lightboxModal.classList.remove("hidden");
+      };
+
+      document.getElementById("btn-close-lightbox").addEventListener("click", () => {
+        lightboxModal.classList.add("hidden");
+        lightboxImg.src = "";
       });
+
+      galleryRefreshBtn.addEventListener("click", loadGallery);
+
       // 로컬 백엔드 서버 상태 주기적 체크
       async function checkServerStatus() {
         try {
-          await fetch(getLocalServerUrl('/api/screenshot'), { method: "OPTIONS" });
-          serverOnline = true;
-          statusText.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-green-500"></span><span class="text-green-600 font-bold">로컬 캡처 백서버 연결됨</span>`;
+          await fetch(getLocalServerUrl('/api/config'), { method: "GET" });
+          if (!serverOnline) {
+            serverOnline = true;
+            loadGallery();
+          }
+          statusText.innerHTML = `<span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500"></span><span class="text-green-600 font-bold">로컬 캡처 백서버 연결됨</span>`;
         } catch (e) {
           serverOnline = false;
-          statusText.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-red-500"></span><span class="text-red-500 font-bold">로컬 백서버 미연결</span>`;
+          statusText.innerHTML = `<span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500"></span><span class="text-red-500 font-bold">로컬 백서버 미연결 (D:\\screenshot)</span>`;
         }
       }
+
       checkServerStatus();
       setInterval(checkServerStatus, 5000);
       loadScheduleConfig();
     }
+
     window.addEventListener("load", setupKeywordScreenshot);
   </script>
 </body>

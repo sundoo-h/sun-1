@@ -60,18 +60,13 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
   try {
     for (const task of tasks) {
       const cleanKeyword = task.keyword.trim();
-      const platform = task.platform;
-      const filename = platform === 'google' 
-        ? `${cleanKeyword} 구글 ${dateStr}.jpg`
-        : `${cleanKeyword} ${dateStr}.jpg`;
+      const filename = `${cleanKeyword} ${dateStr}.jpg`;
       const filepath = path.join(saveDir, filename);
       try {
         const page = await browser.newPage();
         await page.setViewport({ width: 375, height: 812, isMobile: true, hasTouch: true });
         await page.setUserAgent('Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36');
-        const searchUrl = platform === 'google'
-          ? `https://www.google.com/search?q=${encodeURIComponent(cleanKeyword)}`
-          : `https://m.search.naver.com/search.naver?query=${encodeURIComponent(cleanKeyword)}`;
+        const searchUrl = `https://m.search.naver.com/search.naver?query=${encodeURIComponent(cleanKeyword)}`;
         await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
         
         // 페이지 하단까지 부드러운 스크롤 실행
@@ -98,11 +93,11 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
         const circledBuffer = await detectAndDrawRedCircles(screenshotBuffer, ocrKeywords);
         
         fs.writeFileSync(filepath, circledBuffer);
-        results.push({ keyword: cleanKeyword, platform, success: true, skipped: false, path: filepath });
+        results.push({ keyword: cleanKeyword, platform: 'naver', success: true, skipped: false, path: filepath });
         console.log(`[성공] 캡처 저장됨: ${filepath}`);
       } catch (err) {
         console.error(`[실패] 키워드: "${cleanKeyword}", 사유:`, err.message);
-        results.push({ keyword: cleanKeyword, platform, success: false, error: err.message });
+        results.push({ keyword: cleanKeyword, platform: 'naver', success: false, error: err.message });
       }
     }
   } finally {
@@ -112,7 +107,6 @@ async function executeScreenshotList(tasks, saveDir, dateStr, ocrKeywords) {
 }
 // Google Cloud Vision API를 활용한 OCR 매칭 및 빨간 동그라미 표기
 async function detectAndDrawRedCircles(buffer, ocrKeywords) {
-  // ⚠️ 본인의 Google Vision API 키를 기입하세요.
   const apiKey = "YOUR_GOOGLE_VISION_API_KEY_HERE"; 
   if (apiKey.includes("YOUR_GOOGLE_VISION")) {
     console.log("[OCR 건너뜀] Vision API 키가 설정되지 않아 원본을 저장합니다.");
@@ -138,8 +132,6 @@ async function detectAndDrawRedCircles(buffer, ocrKeywords) {
     const textAnnotations = response.textAnnotations || [];
     
     if (textAnnotations.length === 0) return buffer;
-    // 매칭되는 단어가 있을 경우 canvas/sharp 등을 활용해 드로잉 처리를 진행할 수 있습니다.
-    // (이 데모 코드에서는 API 호출 및 텍스트 검출 단계를 수행하고 원본 버퍼를 반환합니다.)
     return buffer;
   } catch (err) {
     console.error("OCR 처리 실패:", err.message);
@@ -156,36 +148,13 @@ app.post('/api/config', (req, res) => {
   saveConfig();
   res.json({ success: true });
 });
-// API: 즉시 스크린샷 실행
-app.post('/api/screenshot', async (req, res) => {
-  const { naverKeywords, googleKeywords, ocrKeywords } = req.body;
-  const tasks = [];
-  
-  if (Array.isArray(naverKeywords)) {
-    naverKeywords.forEach(k => k && tasks.push({ keyword: k, platform: 'naver' }));
-  }
-  if (Array.isArray(googleKeywords)) {
-    googleKeywords.forEach(k => k && tasks.push({ keyword: k, platform: 'google' }));
-  }
-  if (tasks.length === 0) {
-    return res.status(400).json({ success: false, error: '수집할 키워드가 없습니다.' });
-  }
-  const dateStr = getKstDateString();
-  // ⚠️ 본인이 수집 이미지를 저장할 드라이브 폴더 경로로 변경하세요.
-  const finalDir = 'D:\\search-rank'; 
-  try {
-    if (!fs.existsSync(finalDir)) {
-      fs.mkdirSync(finalDir, { recursive: true });
-    }
-    const results = await executeScreenshotList(tasks, finalDir, dateStr, ocrKeywords);
-    res.json({ success: true, folder: finalDir, results });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
+// API: 즉시 스크린샷 실행 (비활성화)
+app.post('/api/screenshot', (req, res) => {
+  res.status(400).json({ success: false, error: '실시간 검색 기능은 비활성화되었습니다.' });
 });
 // API: 폴더 내 파일 뷰어 목록 조회
 app.get('/api/local-screenshots', (req, res) => {
-  const folderPath = req.query.folderPath || 'D:\\search-rank';
+  const folderPath = req.query.folderPath || 'D:\\screenshot';
   try {
     if (!fs.existsSync(folderPath)) {
       return res.json({ success: true, files: [] });
@@ -213,7 +182,7 @@ app.get('/api/local-screenshots', (req, res) => {
 });
 // API: 이미지 개별 뷰
 app.get('/api/local-screenshots/view', (req, res) => {
-  const folderPath = req.query.folderPath || 'D:\\search-rank';
+  const folderPath = req.query.folderPath || 'D:\\screenshot';
   const fileName = req.query.fileName;
   const filePath = path.join(folderPath, fileName);
   if (fs.existsSync(filePath)) {
@@ -236,7 +205,7 @@ setInterval(async () => {
       schedule.lastRunDate = dateStr;
       saveConfig();
       console.log(`[정기 예약 수집] 시각: ${schedule.time} 자동 캡처 프로세스를 시작합니다.`);
-      const finalDir = schedule.saveFolder || 'D:\\search-rank';
+      const finalDir = schedule.saveFolder || 'D:\\screenshot';
       try {
         if (!fs.existsSync(finalDir)) {
           fs.mkdirSync(finalDir, { recursive: true });
@@ -244,9 +213,6 @@ setInterval(async () => {
         const tasks = [];
         if (Array.isArray(schedule.naverKeywords)) {
           schedule.naverKeywords.forEach(k => tasks.push({ keyword: k, platform: 'naver' }));
-        }
-        if (Array.isArray(schedule.googleKeywords)) {
-          schedule.googleKeywords.forEach(k => tasks.push({ keyword: k, platform: 'google' }));
         }
         if (tasks.length > 0) {
           await executeScreenshotList(tasks, finalDir, dateStr, schedule.ocrKeywords);
