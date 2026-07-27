@@ -1,0 +1,804 @@
+# 선두 통합 - 병원 블로그 전문 에디터 & 일러스트 소스 코드
+
+이 마크다운 파일은 `https://sun-1-awb.pages.dev/copy` 페이지에 적용되는 소스 코드 원본 및 히스토리를 보관하는 곳입니다. 코드를 수정할 때마다 이 파일에 기록을 업데이트해야 합니다.
+
+## 원본 HTML 소스 코드
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선두 통합 - 병원 블로그 전문 에디터 & 일러스트</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- JSZip & FileSaver -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Inter', sans-serif; 
+            background-color: #f3f4f6; 
+        }
+        
+        /* 텍스트 에디터 스타일 */
+        .editor-box { min-height: 400px; max-height: 600px; overflow-y: auto; }
+        .highlight-red { background-color: #fee2e2; color: #dc2626; font-weight: bold; padding: 0 4px; border-radius: 4px; }
+        .show-duplicates .duplicate-word { 
+            background-color: rgba(253, 224, 71, 0.4); 
+            border-bottom: 2px solid #facc15; 
+            border-radius: 2px;
+            padding: 0 1px;
+            transition: all 0.2s;
+        }
+        #box2:empty:before { content: attr(placeholder); color: #9ca3af; pointer-events: none; display: block; }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* 일러스트 로더 스타일 */
+        .loader {
+            border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6;
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen">
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Master Header -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border-t-4 border-blue-600 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-hospital-user text-blue-600"></i> 선두 통합 에디터
+                </h1>
+                <p class="text-sm text-gray-500 mt-1">네이버 병원 블로그 상위노출 AI 원고 변환 & 원고 맞춤형 일러스트 동시 생성기</p>
+            </div>
+            <button id="masterActionBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 w-full md:w-auto text-lg animate-pulse hover:animate-none">
+                <i class="fas fa-magic"></i> 원고 변환 & 맞춤 일러스트 생성 시작
+            </button>
+        </div>
+
+        <!-- 텍스트 에디터 영역 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Left Column: Box 1 & Box 3 -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <!-- 1번칸: 원고 입력 -->
+                <div class="bg-white rounded-xl shadow-sm p-5 flex flex-col h-[500px]">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-bold text-gray-800"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm mr-1">1번칸</span> 기존 원고</h2>
+                        <button onclick="document.getElementById('box1').value=''" class="text-xs text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i> 비우기</button>
+                    </div>
+                    <textarea id="box1" class="w-full flex-grow border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none editor-box text-sm leading-relaxed" placeholder="여기에 기존 원고를 붙여넣으세요.&#10;&#10;[작성 팁]&#10;원고 중간중간에 숫자 1, 2, 3, 4, 5를 적어두시면 AI가 문맥을 파악하여 자동으로 매력적인 소제목을 생성하고, 그에 맞는 일러스트를 그려줍니다."></textarea>
+                </div>
+
+                <!-- 3번칸: 금지어 설정 -->
+                <div class="bg-white rounded-xl shadow-sm p-5 flex flex-col flex-grow border-2 border-red-100">
+                    <h2 class="text-lg font-bold text-gray-800 mb-1"><span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-sm mr-1">3번칸</span> 영구 금지어 리스트</h2>
+                    <p class="text-xs text-gray-500 mb-3">쉼표(,)로 구분해서 여러 단어를 한 번에 붙여넣기 할 수 있습니다. <br>※ 기능 업데이트 전 <b class="text-red-600">[백업 복사]</b> 버튼을 꼭 활용해 주세요!</p>
+                    
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="forbiddenInput" class="flex-grow border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none" placeholder="예: 최고, 부작용 없음, 완치 (쉼표로 구분 가능)">
+                        <button id="addForbiddenBtn" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap">추가</button>
+                        <button id="backupBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap" title="등록된 단어 전체를 복사합니다. 저(AI)에게 전달해주세요.">
+                            <i class="fas fa-save"></i> 백업 복사
+                        </button>
+                    </div>
+
+                    <div id="forbiddenList" class="flex flex-wrap gap-2 overflow-y-auto max-h-[200px] p-2 bg-gray-50 rounded-lg border border-gray-200">
+                        <!-- 금지어 렌더링 영역 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Box 2 -->
+            <div class="lg:col-span-2 flex flex-col">
+                <!-- 2번칸: 변환된 원고 -->
+                <div class="bg-white rounded-xl shadow-sm p-5 flex flex-col h-full border-2 border-transparent focus-within:border-blue-200 transition-colors relative">
+                    
+                    <!-- 로딩 오버레이 -->
+                    <div id="loadingOverlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 hidden flex-col justify-center items-center rounded-xl">
+                        <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-4"></i>
+                        <p class="text-lg font-bold text-gray-800">원고를 분석하고 변환 중입니다...</p>
+                        <p class="text-sm text-gray-500 mt-2">최상단 소제목 생성 및 모바일 가시성 포맷 적용 중</p>
+                    </div>
+
+                    <!-- Header Tools -->
+                    <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <h2 class="text-lg font-bold text-gray-800"><span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-sm mr-1">2번칸</span> 변환된 원고</h2>
+                            
+                            <div class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                                <i class="fas fa-pen-nib text-xs"></i>
+                                공백 제외: <span id="charCount" class="text-blue-600">0</span>자
+                            </div>
+                            
+                            <div class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1" title="원본과의 유사도 (띄어쓰기 포함 패턴 분석)">
+                                <i class="fas fa-percentage text-xs"></i>
+                                중복률: <span id="similarityCount" class="font-bold text-purple-600">0</span>%
+                            </div>
+                            
+                            <label class="flex items-center gap-1.5 text-sm cursor-pointer bg-yellow-50 text-yellow-800 hover:bg-yellow-100 px-2 py-1 rounded border border-yellow-200 transition-colors shadow-sm ml-2" title="원본과 똑같이 사용된 단어/문구를 노란색으로 표시합니다.">
+                                <input type="checkbox" id="showDuplicatesToggle" class="accent-yellow-600 w-4 h-4 cursor-pointer" checked>
+                                <i class="fas fa-highlighter text-xs"></i> 원본 중복 표시
+                            </label>
+                        </div>
+                        <button id="copyBtn" class="text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded border border-indigo-200 font-bold transition-colors flex items-center gap-1 shrink-0">
+                            <i class="far fa-copy"></i> 전체 복사
+                        </button>
+                    </div>
+
+                    <div id="box2" contenteditable="true" class="show-duplicates w-full flex-grow p-2 outline-none editor-box text-gray-800 leading-relaxed whitespace-pre-wrap" placeholder="변환된 원고가 이곳에 표시됩니다. (직접 수정도 가능합니다)"></div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-100 bg-gray-50 p-3 rounded-lg">
+                        <h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1">
+                            <i class="fas fa-chart-bar text-gray-500"></i> 중복 단어 분석 <span class="text-xs font-normal text-gray-500">(2번 이상, 상위 10개)</span>
+                        </h3>
+                        <div id="duplicateWords" class="flex flex-wrap gap-2 text-sm">
+                            <span class="text-gray-400 italic">원고가 변환되면 중복 단어가 표시됩니다.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 일러스트 생성 영역 -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-100 pb-4">
+                <div>
+                    <h2 class="text-xl font-extrabold text-gray-800"><i class="fas fa-image text-blue-600 mr-2"></i>원고 맞춤형 병원 블로그 일러스트</h2>
+                    <p class="text-sm text-gray-500 mt-1">2D SD+플랫 / 글씨 없음 / 흰배경 / <span class="text-blue-500 font-bold">무표정 의사 & 담담/심플한 환자</span> / 1800x1800 PNG</p>
+                </div>
+                <div class="flex gap-3 w-full md:w-auto">
+                    <button id="btn-recreate-images" onclick="triggerImageGenerationOnly()" class="flex-1 md:flex-none bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold py-2 px-4 rounded-xl transition-all shadow-sm border border-blue-200">
+                        🔄 생성된 프롬프트로 그림만 다시 그리기
+                    </button>
+                    <button id="btn-download-all" onclick="downloadAll()" class="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                        <i class="fas fa-download"></i> 전체 일괄 다운로드 (.zip)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Image Grid -->
+            <div id="image-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Cards will be injected here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-3 rounded shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        알림 메시지
+    </div>
+
+    <script>
+        // --- Shared API Key Setup ---
+        const apiKey = ""; // API Key provided by the environment
+        const GEMINI_TEXT_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const GEMINI_IMAGE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+
+        // ==========================================
+        // [1] 변수 및 상태 관리
+        // ==========================================
+        const STORAGE_KEY = 'hospital_forbidden_words';
+        const defaultForbiddenWords = [
+            "전액 무료", "무료 제공", "선착순 혜택", "사은품 증정", "교통비 지원", 
+            "완치", "완벽해결", "치료효과 보장", "영구적인 효과", "세계 최초", 
+            "국내 최초", "최저가", "최고", "유일", "1위", "제일", "대표적", 
+            "부작용 없음", "부작용 제로", "통증 없음", "붓기와 멍이 전혀 없음", 
+            "선두외과", "특히", "체험단", "할인", "무료", "무통증", "병원", 
+            "전문병원", "가장", "선두 외과", "추천", "상계동", "노원", "핵심요소", "핵심 요소", "지름길"
+        ];
+
+        let savedWords = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        let forbiddenWords = Array.from(new Set([...defaultForbiddenWords, ...savedWords]));
+
+        // 동적 이미지 생성을 위한 배열 (원고 변환 시 덮어씌워짐)
+        let situations = [
+            "1. 상황 분석 대기 중...",
+            "2. 상황 분석 대기 중...",
+            "3. 상황 분석 대기 중...",
+            "4. 상황 분석 대기 중..."
+        ];
+        
+        const baseStyle = "2D flat corporate vector art mixed with cute chibi anime style, simple flat colors. COMPLETELY SOLID WHITE BACKGROUND. NO TEXT. East Asian Korean person. Very simple, innocent, and gentle facial features. ABSOLUTELY NO frowning, NO angry eyebrows, NO dissatisfied or complaining looks. Keep expressions very mild, neutral, or softly surprised. ";
+        let prompts = Array(8).fill(baseStyle + "A female doctor wearing a surgical mask..."); // 임시 더미
+
+        const fileNames = [
+            "1_상황1_버전1", "1_상황1_버전2",
+            "2_상황2_버전1", "2_상황2_버전2",
+            "3_상황3_버전1", "3_상황3_버전2",
+            "4_상황4_버전1", "4_상황4_버전2"
+        ];
+
+        // DOM 요소
+        const box1 = document.getElementById('box1');
+        const box2 = document.getElementById('box2');
+        const forbiddenInput = document.getElementById('forbiddenInput');
+        const addForbiddenBtn = document.getElementById('addForbiddenBtn');
+        const backupBtn = document.getElementById('backupBtn');
+        const forbiddenList = document.getElementById('forbiddenList');
+        const charCountEl = document.getElementById('charCount');
+        const similarityCountEl = document.getElementById('similarityCount');
+        const duplicateWordsEl = document.getElementById('duplicateWords');
+        const masterActionBtn = document.getElementById('masterActionBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const toast = document.getElementById('toast');
+        const showDuplicatesToggle = document.getElementById('showDuplicatesToggle');
+
+
+        // ==========================================
+        // [2] 텍스트 에디터 UI 및 로직
+        // ==========================================
+        function initTextEditor() {
+            renderForbiddenWords();
+            addForbiddenBtn.addEventListener('click', handleAddForbidden);
+            forbiddenInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAddForbidden(); });
+            backupBtn.addEventListener('click', handleBackup);
+            copyBtn.addEventListener('click', handleCopy);
+            
+            box1.addEventListener('input', () => analyzeBox2(false));
+            box2.addEventListener('input', () => analyzeBox2(false));
+            box2.addEventListener('blur', () => analyzeBox2(true));
+
+            showDuplicatesToggle.addEventListener('change', (e) => {
+                if(e.target.checked) box2.classList.add('show-duplicates');
+                else box2.classList.remove('show-duplicates');
+            });
+            
+            // 통합 실행 마스터 버튼 연결
+            masterActionBtn.addEventListener('click', handleMasterAction);
+        }
+
+        // 금지어 관련
+        function handleAddForbidden() {
+            const inputVal = forbiddenInput.value;
+            if (!inputVal || inputVal.trim() === '') return;
+            const wordsToAdd = inputVal.split(',').map(w => w.trim()).filter(w => w !== '');
+            let added = false;
+            wordsToAdd.forEach(word => {
+                if (!forbiddenWords.includes(word)) {
+                    forbiddenWords.push(word); added = true;
+                }
+            });
+            if (added) { saveForbiddenWords(); renderForbiddenWords(); }
+            forbiddenInput.value = '';
+        }
+        function removeForbidden(word) {
+            forbiddenWords = forbiddenWords.filter(w => w !== word);
+            saveForbiddenWords(); renderForbiddenWords();
+        }
+        function saveForbiddenWords() { localStorage.setItem(STORAGE_KEY, JSON.stringify(forbiddenWords)); }
+        function handleBackup() {
+            if (forbiddenWords.length === 0) return;
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = forbiddenWords.join(', ');
+            document.body.appendChild(tempTextArea); tempTextArea.select();
+            try { document.execCommand('copy'); showToast("✅ 금지어 전체 목록이 복사되었습니다!\n저(AI)에게 붙여넣기 해주시면 뼈대 코드에 영구 저장해 드립니다."); } 
+            catch (err) {} document.body.removeChild(tempTextArea);
+        }
+        function renderForbiddenWords() {
+            if (forbiddenWords.length === 0) { forbiddenList.innerHTML = '<span class="text-xs text-gray-400 p-1">등록된 금지어가 없습니다.</span>'; return; }
+            forbiddenList.innerHTML = forbiddenWords.map(word => `
+                <div class="inline-flex items-center bg-white border border-red-200 text-gray-700 px-2 py-1 rounded text-sm shadow-sm">
+                    <span class="mr-2">${escapeHTML(word)}</span>
+                    <button onclick="removeForbidden('${escapeQuotes(word)}')" class="text-red-400 hover:text-red-600 transition-colors"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('');
+        }
+
+        // 분석 및 하이라이트
+        function analyzeBox2(applyHighlights = true) {
+            let rawText = box2.innerText || box2.textContent;
+            let originalText = box1.value || '';
+            const noSpaceText = rawText.replace(/\s/g, '');
+            charCountEl.innerText = noSpaceText.length.toLocaleString();
+            calculateDuplicates(rawText);
+            const similarity = calculateSimilarity(originalText, rawText);
+            similarityCountEl.innerText = similarity;
+            if (similarity >= 50) similarityCountEl.className = 'font-bold text-red-600';
+            else if (similarity >= 30) similarityCountEl.className = 'font-bold text-orange-500';
+            else similarityCountEl.className = 'font-bold text-purple-600';
+            if (applyHighlights && rawText.trim().length > 0) applyHighlightsToBox2(rawText, originalText);
+        }
+        function calculateSimilarity(str1, str2) {
+            if (!str1 || !str2) return 0;
+            const getBigrams = (str) => {
+                const bigrams = []; for (let i = 0; i < str.length - 1; i++) bigrams.push(str.substring(i, i + 2)); return bigrams;
+            };
+            const bigrams1 = getBigrams(str1); const bigrams2 = getBigrams(str2);
+            if (bigrams1.length === 0 || bigrams2.length === 0) return 0;
+            let intersection = 0; let tempBigrams2 = [...bigrams2];
+            for (let i = 0; i < bigrams1.length; i++) {
+                const index = tempBigrams2.indexOf(bigrams1[i]);
+                if (index !== -1) { intersection++; tempBigrams2.splice(index, 1); }
+            }
+            return Math.round((2.0 * intersection) / (bigrams1.length + bigrams2.length) * 100);
+        }
+        function applyHighlightsToBox2(rawText, originalText) {
+            let safeHTML = escapeHTML(rawText);
+            if (originalText && originalText.trim().length > 0) {
+                const cleanOriginal = originalText.replace(/[.,!?\"'()[\]{}<>~·\n]/g, ' ');
+                const originalWordsSet = new Set(cleanOriginal.split(/\s+/).filter(w => w.length >= 2));
+                if (originalWordsSet.size > 0) {
+                    Array.from(originalWordsSet).sort((a, b) => b.length - a.length).forEach(word => {
+                        const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        safeHTML = safeHTML.replace(new RegExp(`(${escapedWord})(?![^<]*>)`, 'g'), `<span class="duplicate-word">$1</span>`);
+                    });
+                }
+            }
+            if (forbiddenWords.length > 0) {
+                forbiddenWords.forEach(word => {
+                    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    safeHTML = safeHTML.replace(new RegExp(`(${escapedWord})(?![^<]*>)`, 'g'), `<span class="highlight-red">$1</span>`);
+                });
+            }
+            box2.innerHTML = safeHTML.replace(/\n/g, '<br>');
+        }
+        function calculateDuplicates(text) {
+            const words = text.replace(/[.,!?\"'()[\]{}<>~·]/g, '').split(/\s+/).filter(w => w.length > 1); 
+            const counts = {}; words.forEach(w => { counts[w] = (counts[w] || 0) + 1; });
+            const sorted = Object.entries(counts).filter(([_, count]) => count >= 2).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            if (sorted.length === 0) { duplicateWordsEl.innerHTML = '<span class="text-gray-400 italic">2번 이상 중복된 단어가 없습니다.</span>'; return; }
+            duplicateWordsEl.innerHTML = sorted.map(([word, count]) => `
+                <span class="inline-flex items-center bg-white border border-gray-200 text-gray-700 px-2 py-1 rounded text-xs">
+                    ${escapeHTML(word)} <span class="ml-1 bg-gray-200 text-gray-600 rounded-full px-1.5 text-[10px] font-bold">${count}</span>
+                </span>
+            `).join('');
+        }
+        function handleCopy() {
+            const textToCopy = box2.innerText || box2.textContent;
+            if (!textToCopy.trim()) return;
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = textToCopy; document.body.appendChild(tempTextArea); tempTextArea.select();
+            try { document.execCommand('copy'); showToast("✅ 2번칸 내용이 클립보드에 복사되었습니다!"); } catch (err) {}
+            document.body.removeChild(tempTextArea);
+        }
+        function showToast(message) {
+            toast.innerText = message; toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+        }
+
+
+        // ==========================================
+        // [3] AI 동작 파이프라인 (원고변환 -> 프롬프트설계 -> 그림생성)
+        // ==========================================
+        async function handleMasterAction() {
+            const originalText = box1.value;
+            if (!originalText || originalText.trim() === '') {
+                alert("1번칸에 변환할 원고를 입력해주세요."); return;
+            }
+
+            const originalBtnHtml = masterActionBtn.innerHTML;
+            masterActionBtn.disabled = true;
+
+            try {
+                // Step 1: 텍스트 변환
+                masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [1/3] 원고 AI 변환 중...`;
+                const convertedText = await processTextConversion(originalText);
+                
+                // Step 2: 생성된 텍스트를 기반으로 4개의 이미지 프롬프트 기획
+                masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [2/3] 맞춤 일러스트 프롬프트 설계 중...`;
+                await generateDynamicPrompts(convertedText);
+
+                // Step 3: 설계된 프롬프트로 UI 업데이트 및 이미지 생성 시작
+                masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [3/3] 일러스트 생성 중 (하단 확인)`;
+                initImageGenerator(); // 바뀐 situations로 그리드 재생성
+                autoGenerateImages(); // 이미지 순차 생성 시작
+
+                masterActionBtn.innerHTML = `<i class="fas fa-check"></i> 작업 시작됨 (진행상황 하단 확인)`;
+                setTimeout(() => {
+                    masterActionBtn.disabled = false;
+                    masterActionBtn.innerHTML = originalBtnHtml;
+                }, 3000);
+
+            } catch (error) {
+                alert("오류 발생: " + error.message);
+                masterActionBtn.disabled = false;
+                masterActionBtn.innerHTML = originalBtnHtml;
+            }
+        }
+
+        // [3-1] 텍스트 변환 API 호출
+        async function processTextConversion(originalText) {
+            loadingOverlay.classList.remove('hidden'); loadingOverlay.classList.add('flex');
+
+            const systemPrompt = `
+당신은 네이버 블로그 최신 AI 검색 알고리즘을 꿰뚫고 상위노출에 능한 병원 블로그 전문 에디터입니다.
+의료광고법, 의료법에 어긋나는 단어를 절대 사용하지 않으며 법적으로 안전한 문장만 구사합니다.
+
+[문체 및 톤앤매너]
+- 전문의 수준의 지식과 친근함.
+- 홍보성 멘트 절대 금지.
+- **[의료법 준수 - 단정적 표현 금지]:** "무조건 낫는다", "확실한 정답이다", "충분히 호전된다" 같은 확정적, 단정적 표현은 의료법상 위험합니다. 반드시 "호전될 가능성이 있습니다", "도움이 될 수 있습니다", "기대해 볼 수 있습니다"처럼 가능성을 열어두는 신중한 표현으로 작성하십시오.
+
+[숫자 및 기호 표기 규칙 - 필수]
+- 시간, 기간, 횟수 등 수치를 설명할 때는 가독성을 위해 한글(예: 열두 시, 두세 번) 대신 아라비아 숫자(예: 12시, 2~3번)를 적극적으로 활용하십시오.
+- 의료법 및 블로그 안전성을 위해 **퍼센트 기호('%')는 어떠한 경우에도 절대 사용하지 마십시오.** (필요시 '퍼센트'라는 한글이나 다른 우회적인 표현으로 대체)
+
+[요청사항 - 엄격한 띄어쓰기/엔터 규칙]
+가장 중요한 규칙은 사용자가 지정한 **'줄바꿈(엔터) 간격'을 100% 똑같이 재현**하는 것입니다. 
+아래 [출력 형식 템플릿]에 표시된 빈 줄의 개수(엔터 횟수)를 눈여겨보고, 완벽하게 동일한 형태와 간격으로 출력하십시오. 마크다운 기호(#, *, **)는 절대 쓰지 마십시오.
+
+[출력 형식 템플릿 시작 - 이 형태를 그대로 복사하여 내용만 채우세요]
+제목: [SEO 최적화된 매력적인 블로그 제목]
+
+목차
+1. [1번 소제목]
+[1번 사진 묘사 프롬프트: ~~하는 모습.]
+2. [2번 소제목]
+[2번 사진 묘사 프롬프트]
+3. [3번 소제목]
+[3번 사진 묘사 프롬프트]
+4. [4번 소제목]
+[4번 사진 묘사 프롬프트]
+
+
+
+[도입부 문장 1 (소비자의 궁금증을 단도직입적으로 해소하는, 네이버 AI 브리핑(스니펫)에 즉시 노출될 만한 명확하고 확실한 결론/정답 1줄. 두루뭉술한 표현 금지)]
+[도입부 문장 2]
+
+[도입부 문장 3]
+[도입부 문장 4]
+
+[도입부 문장 5]
+[도입부 문장 6]
+
+
+
+1. [1번 소제목]
+
+
+
+[1번 본문 문장 1]
+[1번 본문 문장 2]
+
+[1번 본문 문장 3]
+[1번 본문 문장 4]
+
+
+[1번 핵심 요약/결론 문장 1]
+[1번 핵심 요약/결론 문장 2]
+[1번 핵심 요약/결론 문장 3]
+[1번 핵심 요약/결론 문장 4]
+
+
+
+2. [2번 소제목]
+
+
+
+[2번 본문 문장 1]
+[2번 본문 문장 2]
+
+[2번 본문 문장 3]
+[2번 본문 문장 4]
+
+
+[2번 핵심 요약/결론 문장 1]
+[2번 핵심 요약/결론 문장 2]
+[2번 핵심 요약/결론 문장 3]
+[2번 핵심 요약/결론 문장 4]
+
+
+
+3. [3번 소제목]
+
+
+
+[3번 본문 문장 1]
+[3번 본문 문장 2]
+
+[3번 본문 문장 3]
+[3번 본문 문장 4]
+
+
+[3번 핵심 요약/결론 문장 1]
+[3번 핵심 요약/결론 문장 2]
+[3번 핵심 요약/결론 문장 3]
+[3번 핵심 요약/결론 문장 4]
+
+
+
+4. [4번 소제목]
+
+
+
+[4번 본문 문장 1]
+[4번 본문 문장 2]
+
+[4번 본문 문장 3]
+[4번 본문 문장 4]
+
+
+[4번 핵심 요약/결론 문장 1]
+[4번 핵심 요약/결론 문장 2]
+[4번 핵심 요약/결론 문장 3]
+[4번 핵심 요약/결론 문장 4]
+
+
+
+[마무리 본문 문장 1]
+[마무리 본문 문장 2]
+
+[마무리 본문 문장 3]
+[마무리 본문 문장 4]
+
+[환자의 마음을 공감하며, 쉬운 해결책을 제시하는 친근한 1줄 멘트. 매번 글의 주제에 맞게 새롭게 창작하되, 단정적인 표현은 빼고 "호전될 가능성이 있습니다", "도움이 될 수 있습니다" 등으로 마무리할 것. (예: "오늘 내용이 조금 복잡하게 느껴지셨겠지만, 쉽게 말해 [질환의 핵심]이니 [간단한 해결책/행동지침]을 참고하시면 증상 완화에 도움이 될 수 있습니다.")]
+[출력 형식 템플릿 끝]
+
+---
+[필수 규칙]
+1. 위 템플릿의 간격(빈 줄)을 무조건, 예외 없이 100% 동일하게 맞춰서 출력할 것.
+2. 유사문서 회피를 위해 내용은 새로 창작/재구성할 것.
+3. 금지어 목록(${JSON.stringify(forbiddenWords)}) 절대 포함 금지.
+4. 원본 하단에 해시태그가 있다면 그대로 유지하고, 본문과 연관된 태그를 맨 아래에 추가.
+`;
+
+            const payload = {
+                contents: [{ parts: [{ text: originalText }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            let response;
+            for (let i = 0; i < 3; i++) {
+                try {
+                    response = await fetch(GEMINI_TEXT_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) break;
+                } catch(e) {}
+                await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+            }
+
+            if (!response || !response.ok) {
+                loadingOverlay.classList.remove('flex'); loadingOverlay.classList.add('hidden');
+                throw new Error("원고 변환 API 서버 오류");
+            }
+            
+            const data = await response.json();
+            const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if(!resultText) throw new Error("반환된 텍스트가 없습니다.");
+
+            box2.innerHTML = escapeHTML(resultText).replace(/\n/g, '<br>');
+            analyzeBox2(true);
+            
+            loadingOverlay.classList.remove('flex'); loadingOverlay.classList.add('hidden');
+            return resultText;
+        }
+
+        // [3-2] 변환된 텍스트를 바탕으로 동적 프롬프트 설계
+        async function generateDynamicPrompts(convertedText) {
+            const promptInstruction = `
+                당신은 병원 블로그 원고 내용을 분석하여 적절한 삽화(일러스트) 프롬프트를 작성하는 AI입니다.
+                방금 생성된 블로그 원고에서 1, 2, 3, 4번 소제목의 핵심 내용을 파악하십시오.
+                각 소제목(상황)당 1개의 한국어 상황 설명(UI 표시용)과 2개의 '영어 프롬프트 핵심 묘사'를 생성해야 합니다.
+
+                [영어 프롬프트 작성 규칙]
+                - 의사와 환자의 행동, 감정(무표정/평온함 유지), 주변 의료기기나 모니터 상황 등을 간결한 영어 문장으로 묘사하세요.
+                - 화풍(2D flat, cute chibi 등)이나 배경(White background)에 대한 지시는 절대 적지 마세요. (시스템이 자동으로 합성합니다.)
+                - 예시: "A female doctor with a surgical mask explaining an implant procedure diagram to a sitting patient. The doctor has neutral eyes. The patient looks calm."
+
+                반드시 아래 JSON 형식으로만 응답하세요. (마크다운 기호 없이 순수 JSON 문자열만 출력하세요)
+                {
+                  "situations": [
+                    "1. [소제목1 요약]: [상황 설명]",
+                    "2. [소제목2 요약]: [상황 설명]",
+                    "3. [소제목3 요약]: [상황 설명]",
+                    "4. [소제목4 요약]: [상황 설명]"
+                  ],
+                  "dynamic_prompts": [
+                    "1번 상황에 대한 첫번째 묘사 (영어)",
+                    "1번 상황에 대한 두번째 묘사 (영어)",
+                    "2번 상황 첫번째 (영어)",
+                    "2번 상황 두번째 (영어)",
+                    "3번 상황 첫번째 (영어)",
+                    "3번 상황 두번째 (영어)",
+                    "4번 상황 첫번째 (영어)",
+                    "4번 상황 두번째 (영어)"
+                  ]
+                }
+            `;
+
+            const payload = {
+                contents: [{ parts: [{ text: convertedText }] }],
+                systemInstruction: { parts: [{ text: promptInstruction }] },
+                generationConfig: { responseMimeType: "application/json" }
+            };
+
+            const response = await fetch(GEMINI_TEXT_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("프롬프트 설계 API 서버 오류");
+            const data = await response.json();
+            const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            try {
+                const parsed = JSON.parse(jsonText);
+                if (parsed.situations && parsed.dynamic_prompts && parsed.situations.length === 4 && parsed.dynamic_prompts.length === 8) {
+                    situations = parsed.situations;
+                    // 생성된 영어 묘사 앞에 baseStyle을 강제로 합성
+                    prompts = parsed.dynamic_prompts.map(p => baseStyle + p);
+                } else {
+                    throw new Error("JSON 키 누락");
+                }
+            } catch(e) {
+                console.error("JSON 파싱 에러", e, jsonText);
+                throw new Error("그림 프롬프트 데이터를 분석하는데 실패했습니다.");
+            }
+        }
+
+
+        // ==========================================
+        // [4] 일러스트 생성기 로직
+        // ==========================================
+        function initImageGenerator() {
+            const grid = document.getElementById('image-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const situationIndex = Math.floor(i / 2);
+                const versionNum = (i % 2) + 1;
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col";
+                card.innerHTML = `
+                    <div class="relative w-full aspect-square bg-gray-50 flex items-center justify-center p-4">
+                        <div id="loader-${i}" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10">
+                            <div class="loader mb-3 hidden" id="spinner-${i}"></div>
+                            <span id="loader-text-${i}" class="text-sm font-semibold text-gray-400 text-center px-2">대기 중...</span>
+                        </div>
+                        <img id="img-${i}" class="w-full h-full object-contain drop-shadow-sm opacity-0 transition-opacity duration-500 bg-white" alt="Generated Image" crossorigin="anonymous">
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between border-t border-gray-50">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="bg-blue-50 text-blue-600 text-xs font-bold px-2 py-1 rounded">상황 ${situationIndex + 1}</span>
+                                <span class="bg-purple-50 text-purple-600 text-xs font-bold px-2 py-1 rounded">버전 ${versionNum}</span>
+                            </div>
+                            <p class="text-xs text-gray-600 font-medium leading-relaxed mb-4">${situations[situationIndex]}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="generateSingleImage(${i})" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2 px-2 rounded-lg transition-colors flex items-center justify-center gap-1">
+                                🔄 재생성
+                            </button>
+                            <button onclick="downloadIndividual(${i})" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2 px-2 rounded-lg transition-colors flex items-center justify-center gap-1">
+                                💾 다운로드
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        async function generateSingleImage(index) {
+            const imgEl = document.getElementById(`img-${index}`);
+            const loader = document.getElementById(`loader-${index}`);
+            const spinner = document.getElementById(`spinner-${index}`);
+            const loaderText = document.getElementById(`loader-text-${index}`);
+            
+            imgEl.style.opacity = '0'; imgEl.src = '';
+            loader.classList.remove('hidden'); spinner.classList.remove('hidden');
+            loaderText.innerText = 'AI 그림 생성 중...';
+            loaderText.classList.remove('text-red-500', 'text-gray-400'); loaderText.classList.add('text-blue-500');
+
+            try {
+                const prompt = prompts[index];
+                const payload = {
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                    generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: "1:1" } }
+                };
+                const response = await fetch(GEMINI_IMAGE_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error("이미지 생성 API 오류");
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                if (part && part.inlineData) {
+                    imgEl.onload = () => { loader.classList.add('hidden'); imgEl.style.opacity = '1'; };
+                    imgEl.src = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                } else {
+                    throw new Error("이미지 데이터 반환 실패");
+                }
+            } catch (error) {
+                console.error(`이미지 ${index} 생성 실패:`, error);
+                spinner.classList.add('hidden');
+                loaderText.innerHTML = '<span class="text-red-500 font-bold">생성 실패 (재시도 해주세요)</span>';
+            }
+        }
+
+        function autoGenerateImages() {
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => { generateSingleImage(i); }, i * 1500); 
+            }
+        }
+
+        function triggerImageGenerationOnly() {
+            initImageGenerator();
+            autoGenerateImages();
+        }
+
+        // --- 다운로드 유틸리티 ---
+        async function getUpscaledBlob(imgSrc) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 1800; canvas.height = 1800;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 1800, 1800);
+                    ctx.drawImage(img, 0, 0, 1800, 1800);
+                    canvas.toBlob((blob) => { resolve(blob); }, 'image/png');
+                };
+                img.onerror = reject; img.src = imgSrc;
+            });
+        }
+
+        async function downloadIndividual(index) {
+            const imgEl = document.getElementById(`img-${index}`);
+            if (!imgEl.src || imgEl.src === window.location.href) { alert("생성된 이미지가 없습니다."); return; }
+            try {
+                const resizedBlob = await getUpscaledBlob(imgEl.src);
+                saveAs(resizedBlob, `${fileNames[index]}.png`);
+            } catch (error) { alert("다운로드 오류"); }
+        }
+
+        async function downloadAll() {
+            const btn = document.getElementById('btn-download-all');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> 압축 중...`; btn.disabled = true;
+
+            const zip = new JSZip();
+            const folder = zip.folder("병원_블로그_일러스트_모음");
+            let successCount = 0;
+            for (let i = 0; i < 8; i++) {
+                const imgEl = document.getElementById(`img-${i}`);
+                if (imgEl.src && imgEl.src !== window.location.href) {
+                    try {
+                        const resizedBlob = await getUpscaledBlob(imgEl.src);
+                        folder.file(`${fileNames[i]}.png`, resizedBlob);
+                        successCount++;
+                    } catch (e) { console.error(`압축 실패:`, e); }
+                }
+            }
+            if (successCount > 0) {
+                zip.generateAsync({type:"blob"}).then(function(content) {
+                    saveAs(content, "병원_블로그_일러스트_모음.zip");
+                    btn.innerHTML = originalText; btn.disabled = false;
+                });
+            } else {
+                alert("다운로드할 이미지가 없습니다.");
+                btn.innerHTML = originalText; btn.disabled = false;
+            }
+        }
+
+        function escapeHTML(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+        function escapeQuotes(str) { return str.replace(/'/g, "\\'").replace(/"/g, '\\"'); }
+
+        window.onload = () => {
+            initTextEditor();
+            initImageGenerator(); // 초기 렌더링 (대기 상태)
+        };
+    </script>
+</body>
+</html>
+```
