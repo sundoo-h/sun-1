@@ -609,7 +609,7 @@
                 systemInstruction: { parts: [{ text: systemPrompt }] }
             };
 
-            const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+            const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
             let response;
             let lastErr = "";
 
@@ -628,7 +628,7 @@
                 } catch(e) {
                     lastErr = e.message;
                 }
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 2500));
             }
 
             if (!response || !response.ok) {
@@ -686,7 +686,7 @@
                 generationConfig: { responseMimeType: "application/json" }
             };
 
-            const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+            const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
             let response;
             for (let model of fallbackModels) {
                 try {
@@ -697,7 +697,7 @@
                     });
                     if (response.ok) break;
                 } catch(e) {}
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 2500));
             }
 
             if (!response || !response.ok) throw new Error("프롬프트 설계 API 서버 오류");
