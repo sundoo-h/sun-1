@@ -631,8 +631,8 @@
                     throw new Error(bData.error);
                 }
             } catch (err) {
-                // 2차 직접 브라우저 시도
-                const validModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+                // 2차 직접 브라우저 시도 (gemini-2.0-flash 오직 정식 모델만 사용)
+                const validModels = ['gemini-2.0-flash'];
                 let response;
                 let lastErr = err.message || "";
 
