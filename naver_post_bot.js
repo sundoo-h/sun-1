@@ -121,7 +121,7 @@ async function runNaverPostBot(convertedText, options = {}) {
     
     // 본문 컨테이너 클릭
     try {
-      const bodyTarget = await page.$('.se-main-container .se-content, .se-component-text, .se-text-paragraph, [contenteditable="true"]:not(.se-documentTitle)');
+      const bodyTarget = await page.$('.se-main-container .se-component-text, .se-main-container .se-text-paragraph, .se-content');
       if (bodyTarget) {
         await bodyTarget.click();
         await new Promise(r => setTimeout(r, 500));
@@ -135,26 +135,39 @@ async function runNaverPostBot(convertedText, options = {}) {
 
     const formattedHtml = generateSampleFormatHtml(parsedData);
 
-    // 본문 에디터 노드에 execCommand insertHTML 및 innerHTML 2중 주입
+    // 본문 에디터 노드에 Range 강제 지정 및 insertHTML 주입
     await page.evaluate((htmlContent) => {
-      // 본문 작성 가능 에디터 노드 탐색
-      const targetNodes = Array.from(document.querySelectorAll('[contenteditable="true"]'));
-      let bodyNode = targetNodes.find(node => !node.classList.contains('se-documentTitle') && !node.closest('.se-documentTitle'));
+      let bodyNode = document.querySelector('.se-main-container .se-component-text [contenteditable="true"], .se-main-container .se-text-paragraph, .se-main-container [contenteditable="true"]');
       
       if (!bodyNode) {
-        bodyNode = document.querySelector('.se-main-container, .se-content');
+        const allEditable = Array.from(document.querySelectorAll('[contenteditable="true"]'));
+        bodyNode = allEditable.find(el => {
+          return !el.className.includes('title') && !el.className.includes('Title') && !el.closest('.se-documentTitle');
+        });
       }
 
       if (bodyNode) {
         bodyNode.focus();
+        try {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(bodyNode);
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } catch(e) {}
+
         const success = document.execCommand('insertHTML', false, htmlContent);
         if (!success) {
-          bodyNode.innerHTML += htmlContent;
+          bodyNode.insertAdjacentHTML('beforeend', htmlContent);
         }
       }
     }, formattedHtml);
 
-    // 본문 내용이 네이버 에디터에 안착될 수 있도록 4초 대기
+    // 네이버 에디터 데이터 모델 동기화 키보드 이벤트 발생
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Enter');
     await new Promise(r => setTimeout(r, 4000));
 
     // 4. 네이버 스마트에디터 [저장] 버튼 정밀 클릭 매크로
