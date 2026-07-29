@@ -609,48 +609,68 @@
                 systemInstruction: { parts: [{ text: systemPrompt }] }
             };
 
-            const validModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-            let response;
-            let lastErr = "";
+            const apiKey = getApiKey();
+            let resultText = "";
 
-            for (let model of validModels) {
-                for (let retry = 0; retry < 3; retry++) {
-                    try {
-                        response = await fetch(getGeminiTextApiUrl(model), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
+            // 1차 시도: 백엔드 서버 (/api/convert-text) 경우
+            try {
+                const backendRes = await fetch("http://localhost:3888/api/convert-text", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        originalText: originalText,
+                        forbiddenWords: forbiddenWords
+                    })
+                });
 
-                        if (response.ok) {
-                            break;
-                        } else {
-                            const errJson = await response.json().catch(() => ({}));
-                            lastErr = errJson.error?.message || `HTTP ${response.status}`;
-                            
-                            if (response.status === 429) {
-                                await new Promise(r => setTimeout(r, 3000));
-                                continue;
-                            } else {
-                                break;
-                            }
-                        }
-                    } catch(e) {
-                        lastErr = e.message;
-                        await new Promise(r => setTimeout(r, 1500));
-                    }
+                const bData = await backendRes.json();
+                if (bData.success && bData.text) {
+                    resultText = bData.text;
+                } else if (bData.error) {
+                    throw new Error(bData.error);
                 }
-                if (response && response.ok) break;
-            }
+            } catch (err) {
+                // 2차 직접 브라우저 시도
+                const validModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+                let response;
+                let lastErr = err.message || "";
 
-            if (!response || !response.ok) {
-                loadingOverlay.classList.remove('flex'); loadingOverlay.classList.add('hidden');
-                throw new Error("원고 변환 API 오류 (" + lastErr + ")");
+                for (let model of validModels) {
+                    for (let retry = 0; retry < 2; retry++) {
+                        try {
+                            response = await fetch(getGeminiTextApiUrl(model), {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (response.ok) break;
+                            else {
+                                const errJson = await response.json().catch(() => ({}));
+                                lastErr = errJson.error?.message || `HTTP ${response.status}`;
+                                if (response.status === 429) {
+                                    await new Promise(r => setTimeout(r, 2000));
+                                    continue;
+                                } else break;
+                            }
+                        } catch(e) {
+                            lastErr = e.message;
+                        }
+                    }
+                    if (response && response.ok) break;
+                }
+
+                if (response && response.ok) {
+                    const data = await response.json();
+                    resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                } else {
+                    loadingOverlay.classList.remove('flex'); loadingOverlay.classList.add('hidden');
+                    throw new Error("원고 변환 오류: " + lastErr);
+                }
             }
             
-            const data = await response.json();
-            const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if(!resultText) throw new Error("반환된 텍스트가 없습니다.");
+            if (!resultText) throw new Error("반환된 텍스트가 없습니다.");
 
             box2.innerHTML = escapeHTML(resultText).replace(/\n/g, '<br>');
             analyzeBox2(true);

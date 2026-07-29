@@ -305,6 +305,72 @@ app.post('/api/naver-post', async (req, res) => {
   res.json({ success: true, message: "네이버 포스팅 봇 구동이 시작되었습니다. 팝업 크롬 창에서 진행 상황을 확인해 주세요." });
 });
 
+// 🤖 AI 원고 변환 백엔드 API (Google Gemini API 통신 래핑)
+app.post('/api/convert-text', async (req, res) => {
+  const { apiKey, originalText, forbiddenWords } = req.body;
+  const key = apiKey || (globalConfig.geminiApiKey || "");
+
+  if (!key) {
+    return res.status(400).json({ success: false, error: "Google API 키가 제공되지 않았습니다. 상단 API Key 입력란에 키를 입력하고 [💾 저장]을 눌러주세요." });
+  }
+
+  const systemPrompt = `
+당신은 병원 네이버 블로그 전문 AI 에디터입니다.
+제공된 [기존 원고]를 바탕으로 상위노출에 최적화된 새로운 가독성 원고로 리라이팅(재작성)하십시오.
+
+[필수 지침]
+1. 맨 첫 줄에 반드시 '제목: [원고의 핵심을 담은 매력적인 블로그 제목]' 형태로 작성할 것.
+2. 유사문서 회피를 위해 내용은 새로 창작/재구성할 것.
+3. 금지어 목록(${JSON.stringify(forbiddenWords || [])}) 절대 포함 금지.
+4. 원본 하단에 해시태그가 있다면 그대로 유지하고, 본문과 연관된 태그를 맨 아래에 추가.
+`;
+
+  const payload = {
+    contents: [{ parts: [{ text: originalText }] }],
+    systemInstruction: { parts: [{ text: systemPrompt }] }
+  };
+
+  const modelsToTry = [
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+    'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
+  ];
+
+  let lastErr = "";
+  for (let baseUrl of modelsToTry) {
+    for (let retry = 0; retry < 2; retry++) {
+      try {
+        const response = await fetch(`${baseUrl}?key=${key}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (resultText) {
+            return res.json({ success: true, text: resultText });
+          }
+        } else {
+          const errJson = await response.json().catch(() => ({}));
+          lastErr = errJson.error?.message || `HTTP ${response.status}`;
+          if (response.status === 429) {
+            await new Promise(r => setTimeout(r, 2500));
+            continue;
+          } else {
+            break;
+          }
+        }
+      } catch (e) {
+        lastErr = e.message;
+      }
+    }
+  }
+
+  return res.status(500).json({ success: false, error: lastErr || "원고 변환 중 API 오류가 발생했습니다." });
+});
+
 // 🌐 외부 노출용 cloudflared 퀵 터널 및 index.html 주소 동기화 푸시 로직
 function updateIndexHtmlUrlAndPush(externalUrl) {
   const indexPath = path.join(__dirname, 'index.html');
