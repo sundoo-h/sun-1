@@ -126,10 +126,14 @@
                                 <input type="checkbox" id="showDuplicatesToggle" class="accent-yellow-600 w-4 h-4 cursor-pointer" checked>
                                 <i class="fas fa-highlighter text-xs"></i> 원본 중복 표시
                             </label>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button id="naverPostBtn" onclick="handleNaverPost()" class="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded font-bold transition-colors flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-paper-plane text-xs"></i> 📝 네이버 임시저장 전송
+                            </button>
+                            <button id="copyBtn" class="text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded border border-indigo-200 font-bold transition-colors flex items-center gap-1">
+                                <i class="far fa-copy"></i> 전체 복사
+                            </button>
                         </div>
-                        <button id="copyBtn" class="text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded border border-indigo-200 font-bold transition-colors flex items-center gap-1 shrink-0">
-                            <i class="far fa-copy"></i> 전체 복사
-                        </button>
                     </div>
 
                     <div id="box2" contenteditable="true" class="show-duplicates w-full flex-grow p-2 outline-none editor-box text-gray-800 leading-relaxed whitespace-pre-wrap" placeholder="변환된 원고가 이곳에 표시됩니다. (직접 수정도 가능합니다)"></div>
@@ -363,6 +367,40 @@
         function showToast(message) {
             toast.innerText = message; toast.classList.remove('translate-y-20', 'opacity-0');
             setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+        }
+
+        async function handleNaverPost() {
+            const convertedText = box2.innerText || box2.textContent;
+            if (!convertedText || !convertedText.trim()) {
+                alert("2번칸에 변환된 원고가 없습니다. 먼저 원고 변환을 실행해주세요.");
+                return;
+            }
+
+            const btn = document.getElementById('naverPostBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 전송 중...`;
+            btn.disabled = true;
+
+            try {
+                showToast("🚀 네이버 포스팅 봇 구동 요청 중...");
+                const response = await fetch('http://localhost:3888/api/naver-post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ convertedText })
+                });
+
+                const resData = await response.json();
+                if (resData.success) {
+                    showToast("✅ 네이버 에디터 자동 작성이 시작되었습니다! 크롬 창을 확인해 주세요.");
+                } else {
+                    alert("오류 발생: " + (resData.error || "포스팅 봇 호출 실패"));
+                }
+            } catch (err) {
+                alert("로컬 백서버(localhost:3888)에 연결할 수 없습니다. run_server.bat가 구동되어 있는지 확인해 주세요.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
 
 

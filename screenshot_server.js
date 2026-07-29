@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
 const { exec, spawn } = require('child_process');
+const { runNaverPostBot } = require('./naver_post_bot');
 
 const app = express();
 const PORT = 3888;
@@ -280,7 +281,27 @@ setInterval(async () => {
       }
     }
   }
-}, 30000);
+// 📝 네이버 블로그 포스팅 RPA 자동화 API
+app.post('/api/naver-post', async (req, res) => {
+  const { convertedText } = req.body;
+  if (!convertedText) {
+    return res.status(400).json({ error: "변환된 원고(convertedText)가 누락되었습니다." });
+  }
+
+  loadConfig();
+  const options = globalConfig.naverAccount || { username: "sundoo750", password: "sundoo7535@", blogId: "sundooclinic" };
+
+  console.log("📝 프론트엔드로부터 네이버 블로그 임시저장 요청 수신됨.");
+  
+  // 백그라운드 비동기로 매크로 봇 기동
+  runNaverPostBot(convertedText, options).then(result => {
+    console.log("네이버 포스팅 봇 구동 결과:", result);
+  }).catch(err => {
+    console.error("네이버 포스팅 봇 실행 실패:", err);
+  });
+
+  res.json({ success: true, message: "네이버 포스팅 봇 구동이 시작되었습니다. 팝업 크롬 창에서 진행 상황을 확인해 주세요." });
+});
 
 // 🌐 외부 노출용 cloudflared 퀵 터널 및 index.html 주소 동기화 푸시 로직
 function updateIndexHtmlUrlAndPush(externalUrl) {
