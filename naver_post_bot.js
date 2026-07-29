@@ -111,13 +111,13 @@ async function runNaverPostBot(convertedText, options = {}) {
     if (titleArea) {
       await titleArea.click();
       await new Promise(r => setTimeout(r, 500));
-      await page.keyboard.type(parsedData.title, { delay: 30 });
+      await page.keyboard.type(parsedData.title, { delay: 15 });
     }
 
     await new Promise(r => setTimeout(r, 800));
 
-    // 3. 네이버 스마트에디터 ONE 본문 영역 포커스 및 본문 서식 HTML 주입
-    console.log("🎨 [샘플 포맷 서식 HTML 합성 및 본문 주입 중...]");
+    // 3. 네이버 스마트에디터 ONE 본문 영역 마우스 클릭 및 키보드 직접 물리 타이핑 (Physical Typing)
+    console.log("🎨 [키보드 직접 물리 타이핑 방식 본문 작성 시작...]");
     
     // Tab 키를 눌러 제목에서 본문으로 이동
     await page.keyboard.press('Tab');
@@ -131,53 +131,70 @@ async function runNaverPostBot(convertedText, options = {}) {
       await new Promise(r => setTimeout(r, 500));
     } catch(e) {}
 
-    const formattedHtml = generateSampleFormatHtml(parsedData);
+    // 본문 노드 직접 클릭
+    const bodyTarget = await page.$('.se-main-container .se-component-text, .se-main-container .se-text-paragraph, .se-main-container, [contenteditable="true"]:not(.se-documentTitle)');
+    if (bodyTarget) {
+      try {
+        await bodyTarget.click();
+        await new Promise(r => setTimeout(r, 500));
+      } catch(e) {}
+    }
 
-    // 본문 에디터 노드에 execCommand insertHTML 및 HTML 3중 주입
-    const injected = await page.evaluate((htmlContent) => {
-      // 네이버 스마트에디터 ONE 본문 텍스트 컴포넌트 노드 정밀 탐색
-      let bodyNode = document.querySelector('.se-main-container .se-component-text .se-text-paragraph, .se-main-container .se-component-text, .se-main-container [contenteditable="true"]:not(.se-documentTitle)');
-      
-      if (!bodyNode) {
-        const allEditable = Array.from(document.querySelectorAll('[contenteditable="true"]'));
-        bodyNode = allEditable.find(el => {
-          return !el.className.includes('title') && !el.className.includes('Title') && !el.closest('.se-documentTitle');
-        });
-      }
-
-      if (!bodyNode) {
-        bodyNode = document.querySelector('.se-main-container, .se-content');
-      }
-
-      if (bodyNode) {
-        bodyNode.focus();
-        
-        // 선택 영역(Range) 설정
-        try {
-          const selection = window.getSelection();
-          const range = document.createRange();
-          range.selectNodeContents(bodyNode);
-          range.collapse(false);
-          selection.removeAllRanges();
-          selection.addRange(range);
-        } catch(e) {}
-
-        const success = document.execCommand('insertHTML', false, htmlContent);
-        if (!success) {
-          bodyNode.innerHTML = htmlContent;
-        }
-        return true;
-      }
-      return false;
-    }, formattedHtml);
-
-    console.log("📌 본문 주입 실행 결과:", injected);
-
-    // 본문 Placeholder(배경 문구) 즉시 소멸 및 에디터 동기화를 위한 직접 키보드 타이핑
-    await page.keyboard.type(' ');
+    // A. 목차 타이핑
+    await page.keyboard.type("목차", { delay: 10 });
     await page.keyboard.press('Enter');
-    await page.keyboard.press('Backspace');
-    await new Promise(r => setTimeout(r, 4000));
+    for (let toc of parsedData.tocList) {
+      await page.keyboard.type(toc, { delay: 5 });
+      await page.keyboard.press('Enter');
+    }
+    await page.keyboard.press('Enter');
+
+    // B. 도입부 본문 타이핑
+    if (parsedData.introText) {
+      const introLines = parsedData.introText.split('\n');
+      for (let l of introLines) {
+        const trimmed = l.trim();
+        if (trimmed) {
+          await page.keyboard.type(trimmed, { delay: 3 });
+          await page.keyboard.press('Enter');
+        }
+      }
+      await page.keyboard.press('Enter');
+    }
+
+    // C. 소제목 1~4번 및 상세 본문 타이핑
+    for (let section of parsedData.sections) {
+      await page.keyboard.press('Enter');
+      await page.keyboard.type(section.subTitle, { delay: 10 });
+      await page.keyboard.press('Enter');
+
+      if (section.content) {
+        const contentLines = section.content.split('\n');
+        for (let cl of contentLines) {
+          const trimmedLine = cl.trim();
+          if (trimmedLine) {
+            await page.keyboard.type(trimmedLine, { delay: 3 });
+            await page.keyboard.press('Enter');
+          }
+        }
+      }
+      await page.keyboard.press('Enter');
+    }
+
+    // D. 마무리 본문 타이핑
+    if (parsedData.outroText) {
+      const outroLines = parsedData.outroText.split('\n');
+      for (let ol of outroLines) {
+        const trimmedOutro = ol.trim();
+        if (trimmedOutro) {
+          await page.keyboard.type(trimmedOutro, { delay: 3 });
+          await page.keyboard.press('Enter');
+        }
+      }
+    }
+
+    console.log("✅ [키보드 물리 타이핑 본문 작성 완료!]");
+    await new Promise(r => setTimeout(r, 3000));
 
     // 4. 네이버 스마트에디터 [저장] 버튼 정밀 클릭 매크로
     console.log("💾 [네이버 임시저장 버튼 클릭 시도...]");
