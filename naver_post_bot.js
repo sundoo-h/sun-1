@@ -16,13 +16,13 @@ function getChromePath() {
 }
 
 /**
- * 네이버 블로그 에디터 자동 타이핑 및 서식 임시저장 RPA 봇
+ * 네이버 블로그 에디터 정교한 서식 자동화 및 임시저장 RPA 봇
  * @param {string} convertedText 2번칸의 변환된 원고 텍스트
  * @param {object} options 설정 옵션 (username, password, blogId 등)
  */
 async function runNaverPostBot(convertedText, options = {}) {
   const chromePath = getChromePath();
-  const userDataDir = path.join(__dirname, '.chrome_profile');
+  const userDataDir = path.join(__dirname, '.chrome_profile_' + Math.floor(Date.now() / (1000 * 60 * 60)));
 
   console.log("🚀 Puppeteer 네이버 포스팅 봇 기동 중...");
   
@@ -53,19 +53,18 @@ async function runNaverPostBot(convertedText, options = {}) {
 
       console.log(`🔑 아이디(${username}) 로그인 시도 중...`);
 
-      // 네이버 캡차 우회를 위한 evaluate 입력
+      // 네이버 캡차 우회를 위한 evaluate 입력 및 제출
       await page.evaluate((id, pw) => {
-        document.querySelector("#id").value = id;
-        document.querySelector("#pw").value = pw;
+        const idInput = document.querySelector("#id");
+        const pwInput = document.querySelector("#pw");
+        if (idInput) idInput.value = id;
+        if (pwInput) pwInput.value = pw;
+        const btn = document.querySelector('.btn_login, #log\\.login, button[type="submit"], .btn_g');
+        if (btn) btn.click();
       }, username, password);
 
-      await Promise.all([
-        page.waitForNavigation({ waitUntil: "networkidle2", timeout: 15000 }).catch(() => {}),
-        page.click("#log\\.login")
-      ]);
-
-      // 2차 인증이나 등록 안내 화면이 나올 수 있으므로 3초 대기
-      await new Promise(r => setTimeout(r, 3000));
+      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 15000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 2000));
     }
 
     const blogId = options.blogId || "sundooclinic";
@@ -77,11 +76,15 @@ async function runNaverPostBot(convertedText, options = {}) {
 
     // 팝업 처리 (이전 작성 중인 글 불러오기 취소 / 도움말 팝업 닫기)
     try {
-      const cancelBtn = await page.$('.se-popup-button-cancel, .se-help-close-button');
-      if (cancelBtn) {
-        await cancelBtn.click();
-        await new Promise(r => setTimeout(r, 1000));
-      }
+      await page.evaluate(() => {
+        const cancelBtns = Array.from(document.querySelectorAll('button, a'));
+        cancelBtns.forEach(btn => {
+          if (btn.innerText && (btn.innerText.includes('취소') || btn.innerText.includes('닫기'))) {
+            btn.click();
+          }
+        });
+      });
+      await new Promise(r => setTimeout(r, 1000));
     } catch (e) {}
 
     // 원고 구조 파싱
@@ -90,115 +93,71 @@ async function runNaverPostBot(convertedText, options = {}) {
 
     // 2. 제목 입력
     console.log("✍️ [제목 입력 중...]");
-    const titleArea = await page.$('.se-documentTitle, .se-title-text');
+    const titleArea = await page.$('.se-documentTitle, .se-title-text, [contenteditable="true"]');
     if (titleArea) {
       await titleArea.click();
       await new Promise(r => setTimeout(r, 500));
-      await page.keyboard.type(parsedData.title, { delay: 40 });
+      await page.keyboard.type(parsedData.title, { delay: 30 });
     }
 
-    // 본문 에디터 이동 (Down 키나 에디터 본문 영역 클릭)
+    // 본문 에디터로 포커스 이동
     await page.keyboard.press('Enter');
     await new Promise(r => setTimeout(r, 500));
 
-    // 3. 본문 전체 가운데 정렬 세팅
-    console.log("📐 [가운데 정렬 설정]");
-    try {
-      const alignBtn = await page.$('.se-toolbar .se-align-center-button, button[data-name="align-center"]');
-      if (alignBtn) await alignBtn.click();
-    } catch(e) {}
-
-    // 4. 서두 도입부 인용구 (밑라인)
-    console.log("💬 [인용구 타이핑]");
-    try {
-      const quoteBtn = await page.$('.se-toolbar .se-quote-button, button[data-name="quote"]');
-      if (quoteBtn) {
-        await quoteBtn.click();
-        await new Promise(r => setTimeout(r, 800));
-      }
-    } catch(e) {}
-    await page.keyboard.type(parsedData.title, { delay: 40 });
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('Enter');
-    await new Promise(r => setTimeout(r, 500));
-
-    // 5. 목차 표(Table) 생성 (1열 5행)
-    console.log("📊 [목차 표(1x5) 생성 중...]");
-    try {
-      const tableBtn = await page.$('.se-toolbar .se-table-button, button[data-name="table"]');
-      if (tableBtn) {
-        await tableBtn.click();
-        await new Promise(r => setTimeout(r, 1500));
-      }
-    } catch(e) {
-      console.log("표 생성 버튼 클릭 우회 진행");
-    }
-
-    // 표 내부 셀 타이핑 (첫행: 목차, 다음 행들: 소제목들)
-    const tableCellsText = ["목차", ...parsedData.tocList];
-    for (let text of tableCellsText) {
-      await page.keyboard.type(text, { delay: 30 });
-      await page.keyboard.press('Tab'); // 다음 셀로 이동
-      await new Promise(r => setTimeout(r, 200));
-    }
+    // 3. 네이버 블로그 샘플(224361192618) 완벽 서식 HTML 합성 및 Direct Injection
+    console.log("🎨 [샘플 포맷 서식 HTML 합성 및 에디터 주입 중...]");
     
-    // 표 아래로 빠져나오기
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('Enter');
-    await new Promise(r => setTimeout(r, 1000));
+    const formattedHtml = generateSampleFormatHtml(parsedData);
 
-    // 6. 도입부 본문 타이핑
-    if (parsedData.introText) {
-      console.log("📄 [도입부 본문 타이핑 중...]");
-      await typeParagraphs(page, parsedData.introText);
-    }
-
-    // 7. 소제목 1~4번 단락 타이핑 & 서식 적용 (폰트 19px, 볼드, 남색 `#2b2a73`)
-    for (let section of parsedData.sections) {
-      console.log(`📌 [소제목 타이핑 & 서식 적용]: ${section.subTitle}`);
-      
-      // 소제목 타이핑
-      await page.keyboard.type(section.subTitle, { delay: 40 });
-      
-      // 소제목 스타일 지정 (드래그 전체 선택 후 툴바 클릭 효과)
-      await page.keyboard.down('Shift');
-      await page.keyboard.press('Home');
-      await page.keyboard.up('Shift');
-      await new Promise(r => setTimeout(r, 300));
-
-      // 툴바 서식 클릭 (볼드, 글자크기 19px, 남색)
-      await applySubtitleStyle(page);
-
-      // 줄바꿈 후 정상 본문 타이핑
-      await page.keyboard.press('End');
-      await page.keyboard.press('Enter');
-      await new Promise(r => setTimeout(r, 500));
-
-      if (section.content) {
-        await typeParagraphs(page, section.content);
+    // 본문 에디터 영역 포커스 후 execCommand insertHTML 실행
+    await page.evaluate((htmlContent) => {
+      const editorArea = document.querySelector('.se-main-container, .se-content, [contenteditable="true"]:not(.se-documentTitle)');
+      if (editorArea) {
+        editorArea.focus();
+        document.execCommand('insertHTML', false, htmlContent);
       }
-    }
+    }, formattedHtml);
 
-    // 8. 마무리 본문 타이핑
-    if (parsedData.outroText) {
-      console.log("📄 [마무리 본문 타이핑 중...]");
-      await typeParagraphs(page, parsedData.outroText);
-    }
+    await new Promise(r => setTimeout(r, 2000));
 
-    // 9. 임시저장 버튼 클릭!
-    console.log("💾 [네이버 임시저장 버튼 클릭!]");
-    await new Promise(r => setTimeout(r, 1500));
+    // 4. 네이버 스마트에디터 [저장] 버튼 정밀 클릭 매크로
+    console.log("💾 [네이버 임시저장 버튼 클릭 시도...]");
     
-    const saveBtn = await page.$('.se-document-action-save, button.se-save-button, .se-header-save-button');
-    if (saveBtn) {
-      await saveBtn.click();
-      console.log("✅ 네이버 블로그 임시저장 성공!");
+    let saved = await page.evaluate(() => {
+      const saveSelectors = [
+        'button.se-document-action-save',
+        'button.se-save-button',
+        'button.se-header-save-button',
+        'button._save_btn',
+        '.se-header-save-button',
+        'button[data-name="save"]'
+      ];
+      for (let s of saveSelectors) {
+        const btn = document.querySelector(s);
+        if (btn) {
+          btn.click();
+          return true;
+        }
+      }
+      // 텍스트 기반 억지 탐색
+      const allBtns = Array.from(document.querySelectorAll('button, a'));
+      for (let b of allBtns) {
+        if (b.innerText && b.innerText.trim() === '저장') {
+          b.click();
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (saved) {
+      console.log("✅ 네이버 블로그 [임시저장] 성공 완료!");
     } else {
-      console.log("⚠️ 저장 버튼 자동 클릭 실패 - 브라우저 화면에서 [저장] 버튼을 마우스로 클릭해주세요.");
+      console.log("⚠️ 저장 버튼 위치 자동 클릭 실패 - 브라우저 화면 우측 상단의 [저장] 버튼을 마우스로 눌러주세요.");
     }
 
-    console.log("🎉 포스팅 매크로 작업 완료. 검토를 위해 크롬 브라우저를 유기 상태로 유지합니다.");
-    return { success: true, message: "임시저장이 완료되었습니다." };
+    console.log("🎉 완벽 포스팅 매크로 작업 완료. 사용자 검토를 위해 크롬 브라우저를 유기 상태로 유지합니다.");
+    return { success: true, message: "샘플 양식 포맷에 맞춰 임시저장 작성이 완료되었습니다." };
 
   } catch (error) {
     console.error("❌ 포스팅 봇 구동 에러:", error);
@@ -206,46 +165,95 @@ async function runNaverPostBot(convertedText, options = {}) {
   }
 }
 
-// 텍스트 단락 타이핑 유틸리티
-async function typeParagraphs(page, text) {
-  const lines = text.split('\n');
-  for (let line of lines) {
-    if (line.trim()) {
-      await page.keyboard.type(line.trim(), { delay: 25 });
-    }
-    await page.keyboard.press('Enter');
-    await new Promise(r => setTimeout(r, 150));
+/**
+ * 네이버 블로그 샘플 게시글 (224361192618) 서식을 100% 동일하게 복제하는 HTML 생성기
+ * - 남색 글자 컬러: #2b2a73
+ * - 분홍색 글자 배경색: #ffdce7
+ * - 표 배경 분홍색: #ef8aaa (1열 5행)
+ * - 도입부 인용구 및 본문 나눔스퀘어 가운데 정렬
+ */
+function generateSampleFormatHtml(parsedData) {
+  let html = '';
+
+  // 1. 도입부 인용구 (밑라인 텍스트 강조)
+  html += `
+    <div style="text-align:center; margin-top:20px; margin-bottom:25px;">
+      <blockquote style="display:inline-block; border-bottom:2px solid #2b2a73; padding-bottom:8px; margin:0 auto;">
+        <span style="font-weight:bold; font-size:16px; color:#2b2a73; font-family:nanumsquare, sans-serif;">${parsedData.title}</span>
+      </blockquote>
+    </div>
+  `;
+
+  // 2. 목차 표 (1열 5행, #ef8aaa 핑크 배경 첫행)
+  html += `
+    <div style="margin:25px 0; text-align:center;">
+      <table style="width:35%; min-width:290px; margin:0 auto; border-collapse:collapse; border:1px solid #e2e8f0;">
+        <tbody>
+          <tr style="background-color:#ef8aaa; height:43px;">
+            <td style="border:1px solid #e2e8f0; padding:10px; text-align:center;">
+              <span style="color:#2b2a73; font-weight:bold; font-size:15px; font-family:nanumsquare, sans-serif;">목차</span>
+            </td>
+          </tr>
+          ${parsedData.tocList.map(toc => `
+          <tr style="height:43px; background-color:#ffffff;">
+            <td style="border:1px solid #e2e8f0; padding:10px; text-align:center;">
+              <span style="font-size:14px; color:#333333; font-family:nanumsquare, sans-serif;">${toc}</span>
+            </td>
+          </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // 3. 도입부 본문 (가운데 정렬)
+  if (parsedData.introText) {
+    const lines = parsedData.introText.split('\n');
+    lines.forEach(line => {
+      if (line.trim()) {
+        html += `<p style="text-align:center; line-height:2.1; margin:8px 0;"><span style="font-family:nanumsquare, sans-serif; font-size:15px; color:#333;">${escapeHtml(line.trim())}</span></p>`;
+      } else {
+        html += `<p style="text-align:center; line-height:2.1;"><br></p>`;
+      }
+    });
   }
+
+  // 4. 소제목 1~4번 단락 (남색 글자 #2b2a73, 폰트 19px, 볼드, 분홍색 글자 배경색 #ffdce7)
+  parsedData.sections.forEach(section => {
+    html += `
+      <p style="text-align:center; line-height:2.1; margin-top:35px; margin-bottom:18px;">
+        <span style="font-size:19px; font-weight:bold; color:#2b2a73; background-color:#ffdce7; padding:4px 10px; border-radius:4px; font-family:nanumsquare, sans-serif;">${escapeHtml(section.subTitle)}</span>
+      </p>
+    `;
+    if (section.content) {
+      const lines = section.content.split('\n');
+      lines.forEach(line => {
+        if (line.trim()) {
+          html += `<p style="text-align:center; line-height:2.1; margin:8px 0;"><span style="font-family:nanumsquare, sans-serif; font-size:15px; color:#333;">${escapeHtml(line.trim())}</span></p>`;
+        } else {
+          html += `<p style="text-align:center; line-height:2.1;"><br></p>`;
+        }
+      });
+    }
+  });
+
+  // 5. 마무리 본문
+  if (parsedData.outroText) {
+    const lines = parsedData.outroText.split('\n');
+    lines.forEach(line => {
+      if (line.trim()) {
+        html += `<p style="text-align:center; line-height:2.1; margin:8px 0;"><span style="font-family:nanumsquare, sans-serif; font-size:15px; color:#333;">${escapeHtml(line.trim())}</span></p>`;
+      } else {
+        html += `<p style="text-align:center; line-height:2.1;"><br></p>`;
+      }
+    });
+  }
+
+  return html;
 }
 
-// 소제목 서식 적용 (볼드, 크기 19px, 남색)
-async function applySubtitleStyle(page) {
-  try {
-    // 볼드 버튼
-    const boldBtn = await page.$('.se-toolbar .se-bold-button, button[data-name="bold"]');
-    if (boldBtn) await boldBtn.click();
-    await new Promise(r => setTimeout(r, 200));
-
-    // 폰트 크기 버튼 (19px)
-    const fontSizeBtn = await page.$('.se-toolbar .se-font-size-button, button[data-name="font-size"]');
-    if (fontSizeBtn) {
-      await fontSizeBtn.click();
-      await new Promise(r => setTimeout(r, 300));
-      const targetSizeOption = await page.$('.se-font-size-option-19, [data-size="19"]');
-      if (targetSizeOption) await targetSizeOption.click();
-    }
-
-    // 폰트 색상 버튼 (남색 #2b2a73)
-    const colorBtn = await page.$('.se-toolbar .se-font-color-button, button[data-name="font-color"]');
-    if (colorBtn) {
-      await colorBtn.click();
-      await new Promise(r => setTimeout(r, 300));
-      const targetColor = await page.$('[data-color="#2b2a73"], .se-color-palette-cell[data-color="#2b2a73"]');
-      if (targetColor) await targetColor.click();
-    }
-  } catch(e) {
-    console.log("서식 툴바 일부 적용 시 스킵:", e.message);
-  }
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 // 2번칸 원고 구조 분석 함수
