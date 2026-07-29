@@ -199,14 +199,14 @@
         function saveApiKey() {
             const input = document.getElementById('apiKeyInput');
             const val = input ? input.value.trim() : "";
-            if (!val) { alert("Google API 키를 입력해 주세요."); return; }
+            if (!val) { alert("API 키를 입력해 주세요. (Google 키 또는 OpenAI sk-... 키)"); return; }
             localStorage.setItem('gemini_api_key', val);
-            showToast("✅ Google API 키가 성공적으로 저장되었습니다!");
+            showToast("✅ API 키가 성공적으로 저장되었습니다!");
         }
 
         function getGeminiTextApiUrl(model = 'gemini-2.0-flash') {
             const key = getApiKey();
-            if (!key) throw new Error("Google API 키가 설정되지 않았습니다. 상단 [Google API Key] 입력창에 키를 입력 후 [💾 키 저장]을 클릭해 주세요!");
+            if (!key) throw new Error("API 키가 설정되지 않았습니다. 상단 [AI API Key] 입력창에 키를 입력 후 [💾 저장]을 눌러주세요!");
             return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
         }
 
