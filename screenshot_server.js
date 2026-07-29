@@ -11,6 +11,7 @@ const PORT = 3888;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 const CONFIG_PATH = path.join(__dirname, 'config.json');
+const MONTHLY_REPORTS_PATH = path.join(__dirname, 'monthly_reports.json');
 let globalConfig = { schedules: [] };
 
 function loadConfig() {
@@ -30,6 +31,32 @@ function saveConfig() {
   }
 }
 loadConfig();
+
+// 월간 통계 데이터 영구 저장 API
+app.get('/api/monthly-reports', (req, res) => {
+  try {
+    if (fs.existsSync(MONTHLY_REPORTS_PATH)) {
+      const data = JSON.parse(fs.readFileSync(MONTHLY_REPORTS_PATH, 'utf8'));
+      return res.json({ success: true, reports: data });
+    }
+  } catch (e) {
+    console.error("월간 리포트 로드 실패:", e);
+  }
+  return res.json({ success: true, reports: null });
+});
+
+app.post('/api/monthly-reports', (req, res) => {
+  try {
+    const { reports } = req.body;
+    if (Array.isArray(reports)) {
+      fs.writeFileSync(MONTHLY_REPORTS_PATH, JSON.stringify(reports, null, 2), 'utf8');
+      return res.json({ success: true });
+    }
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+  return res.status(400).json({ success: false, error: "잘못된 데이터 형식입니다." });
+});
 
 // OS별 크롬/엣지 자동 브라우저 경로 탐색
 function getBrowserPath() {
