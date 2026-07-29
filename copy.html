@@ -637,7 +637,8 @@
                 let lastErr = err.message || "";
 
                 for (let model of validModels) {
-                    for (let retry = 0; retry < 2; retry++) {
+                    const delays = [7000, 10000];
+                    for (let retry = 0; retry < delays.length; retry++) {
                         try {
                             response = await fetch(getGeminiTextApiUrl(model), {
                                 method: 'POST',
@@ -650,7 +651,7 @@
                                 const errJson = await response.json().catch(() => ({}));
                                 lastErr = errJson.error?.message || `HTTP ${response.status}`;
                                 if (response.status === 429) {
-                                    await new Promise(r => setTimeout(r, 2000));
+                                    await new Promise(r => setTimeout(r, delays[retry]));
                                     continue;
                                 } else break;
                             }

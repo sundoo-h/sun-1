@@ -369,7 +369,8 @@ app.post('/api/convert-text', async (req, res) => {
 
   let lastErr = "";
   for (let baseUrl of modelsToTry) {
-    for (let retry = 0; retry < 2; retry++) {
+    const delays = [7000, 10000, 12000, 15000];
+    for (let retry = 0; retry < delays.length; retry++) {
       try {
         const response = await fetch(`${baseUrl}?key=${key}`, {
           method: 'POST',
@@ -387,7 +388,8 @@ app.post('/api/convert-text', async (req, res) => {
           const errJson = await response.json().catch(() => ({}));
           lastErr = errJson.error?.message || `HTTP ${response.status}`;
           if (response.status === 429) {
-            await new Promise(r => setTimeout(r, 2000));
+            console.log(`[Google API] 무료 계정 한도(429) 감지. ${delays[retry]/1000}초 후 자동 재시도합니다... (시도 ${retry+1}/${delays.length})`);
+            await new Promise(r => setTimeout(r, delays[retry]));
             continue;
           } else {
             break;
