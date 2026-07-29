@@ -305,26 +305,59 @@ app.post('/api/naver-post', async (req, res) => {
   res.json({ success: true, message: "네이버 포스팅 봇 구동이 시작되었습니다. 팝업 크롬 창에서 진행 상황을 확인해 주세요." });
 });
 
-// 🤖 AI 원고 변환 백엔드 API (Google Gemini API 통신 래핑)
+// 🤖 AI 원고 변환 백엔드 API (Google Gemini & OpenAI GPT-4o-mini 듀얼 지원)
 app.post('/api/convert-text', async (req, res) => {
   const { apiKey, originalText, forbiddenWords } = req.body;
-  const key = apiKey || (globalConfig.geminiApiKey || "");
+  const key = (apiKey || globalConfig.geminiApiKey || "").trim();
 
   if (!key) {
-    return res.status(400).json({ success: false, error: "Google API 키가 제공되지 않았습니다. 상단 API Key 입력란에 키를 입력하고 [💾 저장]을 눌러주세요." });
+    return res.status(400).json({ success: false, error: "API 키가 전송되지 않았습니다. 상단 [API Key] 입력창에 구글(AIza...) 또는 OpenAI(sk-...) 키를 입력 후 [💾 저장]을 눌러주세요." });
   }
 
-  const systemPrompt = `
-당신은 병원 네이버 블로그 전문 AI 에디터입니다.
+  const systemPrompt = `당신은 병원 네이버 블로그 전문 AI 에디터입니다.
 제공된 [기존 원고]를 바탕으로 상위노출에 최적화된 새로운 가독성 원고로 리라이팅(재작성)하십시오.
 
 [필수 지침]
 1. 맨 첫 줄에 반드시 '제목: [원고의 핵심을 담은 매력적인 블로그 제목]' 형태로 작성할 것.
 2. 유사문서 회피를 위해 내용은 새로 창작/재구성할 것.
 3. 금지어 목록(${JSON.stringify(forbiddenWords || [])}) 절대 포함 금지.
-4. 원본 하단에 해시태그가 있다면 그대로 유지하고, 본문과 연관된 태그를 맨 아래에 추가.
-`;
+4. 원본 하단에 해시태그가 있다면 그대로 유지하고, 본문과 연관된 태그를 맨 아래에 추가.`;
 
+  // 1. OpenAI Key (sk-...) 감지 시 GPT-4o-mini 유료/정식 모델 호출
+  if (key.startsWith('sk-')) {
+    console.log("🤖 OpenAI GPT-4o-mini 엔드포인트 호출 중...");
+    try {
+      const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: originalText }
+          ],
+          temperature: 0.7
+        })
+      });
+
+      if (gptRes.ok) {
+        const gptData = await gptRes.json();
+        const text = gptData.choices?.[0]?.message?.content;
+        if (text) return res.json({ success: true, text: text });
+      } else {
+        const errJson = await gptRes.json().catch(() => ({}));
+        return res.status(500).json({ success: false, error: "OpenAI API 오류: " + (errJson.error?.message || gptRes.statusText) });
+      }
+    } catch(e) {
+      return res.status(500).json({ success: false, error: "OpenAI 통신 에러: " + e.message });
+    }
+  }
+
+  // 2. Google Gemini API 호출 (AIza...)
+  console.log("🤖 Google Gemini API 엔드포인트 호출 중...");
   const payload = {
     contents: [{ parts: [{ text: originalText }] }],
     systemInstruction: { parts: [{ text: systemPrompt }] }
@@ -356,7 +389,7 @@ app.post('/api/convert-text', async (req, res) => {
           const errJson = await response.json().catch(() => ({}));
           lastErr = errJson.error?.message || `HTTP ${response.status}`;
           if (response.status === 429) {
-            await new Promise(r => setTimeout(r, 2500));
+            await new Promise(r => setTimeout(r, 2000));
             continue;
           } else {
             break;
@@ -368,7 +401,7 @@ app.post('/api/convert-text', async (req, res) => {
     }
   }
 
-  return res.status(500).json({ success: false, error: lastErr || "원고 변환 중 API 오류가 발생했습니다." });
+  return res.status(500).json({ success: false, error: "Google Gemini API 오류: " + (lastErr || "키 권한 제한. OpenAI 키(sk-...)를 사용하시거나 Google AI Studio 키(AIza...)를 재발급해 주세요.") });
 });
 
 // 🌐 외부 노출용 cloudflared 퀵 터널 및 index.html 주소 동기화 푸시 로직
