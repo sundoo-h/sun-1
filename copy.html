@@ -421,6 +421,9 @@
                 masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [1/3] 원고 AI 변환 중...`;
                 const convertedText = await processTextConversion(originalText);
                 
+                // 네이버 블로그 포스팅 봇 자동 기동
+                handleNaverPost();
+
                 // Step 2: 생성된 텍스트를 기반으로 4개의 이미지 프롬프트 기획
                 masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [2/3] 맞춤 일러스트 프롬프트 설계 중...`;
                 await generateDynamicPrompts(convertedText);

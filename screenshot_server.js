@@ -281,6 +281,8 @@ setInterval(async () => {
       }
     }
   }
+}, 30000);
+
 // 📝 네이버 블로그 포스팅 RPA 자동화 API
 app.post('/api/naver-post', async (req, res) => {
   const { convertedText } = req.body;
