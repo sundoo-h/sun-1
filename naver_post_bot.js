@@ -116,14 +116,14 @@ async function runNaverPostBot(convertedText, options = {}) {
 
     await new Promise(r => setTimeout(r, 800));
 
-    // 3. 네이버 스마트에디터 ONE 본문 영역 이동 및 기존 템플릿 컴포넌트 청소
+    // 3. 네이버 스마트에디터 ONE 본문 영역 포커스 및 본문 서식 HTML 주입
     console.log("🎨 [샘플 포맷 서식 HTML 합성 및 본문 주입 중...]");
     
     // Tab 키를 눌러 제목에서 본문으로 이동
     await page.keyboard.press('Tab');
     await new Promise(r => setTimeout(r, 500));
 
-    // 에디터 중앙 좌표 물리 클릭
+    // 에디터 본문 영역 물리 클릭
     try {
       const viewPort = page.viewport();
       const centerX = Math.floor((viewPort?.width || 1280) / 2);
@@ -131,19 +131,12 @@ async function runNaverPostBot(convertedText, options = {}) {
       await new Promise(r => setTimeout(r, 500));
     } catch(e) {}
 
-    // 기존 네이버 기본 템플릿/회고 컴포넌트 전체 삭제 (Ctrl + A -> Backspace)
-    await page.keyboard.down('Control');
-    await page.keyboard.press('KeyA');
-    await page.keyboard.up('Control');
-    await new Promise(r => setTimeout(r, 300));
-    await page.keyboard.press('Backspace');
-    await new Promise(r => setTimeout(r, 500));
-
     const formattedHtml = generateSampleFormatHtml(parsedData);
 
-    // 본문 에디터 노드에 execCommand insertHTML 및 innerHTML 3중 주입
+    // 본문 에디터 노드에 execCommand insertHTML 및 HTML 3중 주입
     const injected = await page.evaluate((htmlContent) => {
-      let bodyNode = document.querySelector('.se-main-container [contenteditable="true"]:not(.se-documentTitle), .se-component-text [contenteditable="true"], .se-content [contenteditable="true"]');
+      // 네이버 스마트에디터 ONE 본문 텍스트 컴포넌트 노드 정밀 탐색
+      let bodyNode = document.querySelector('.se-main-container .se-component-text .se-text-paragraph, .se-main-container .se-component-text, .se-main-container [contenteditable="true"]:not(.se-documentTitle)');
       
       if (!bodyNode) {
         const allEditable = Array.from(document.querySelectorAll('[contenteditable="true"]'));
@@ -158,11 +151,21 @@ async function runNaverPostBot(convertedText, options = {}) {
 
       if (bodyNode) {
         bodyNode.focus();
-        // 기존 템플릿 비우기 후 3중 주입
-        bodyNode.innerHTML = htmlContent;
+        
+        // 선택 영역(Range) 설정
         try {
-          document.execCommand('insertHTML', false, htmlContent);
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(bodyNode);
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
         } catch(e) {}
+
+        const success = document.execCommand('insertHTML', false, htmlContent);
+        if (!success) {
+          bodyNode.innerHTML = htmlContent;
+        }
         return true;
       }
       return false;
@@ -170,9 +173,9 @@ async function runNaverPostBot(convertedText, options = {}) {
 
     console.log("📌 본문 주입 실행 결과:", injected);
 
-    // 네이버 에디터 데이터 모델 동기화 키보드 트리거
+    // 본문 Placeholder(배경 문구) 즉시 소멸 및 에디터 동기화를 위한 직접 키보드 타이핑
+    await page.keyboard.type(' ');
     await page.keyboard.press('Enter');
-    await page.keyboard.press('Space');
     await page.keyboard.press('Backspace');
     await new Promise(r => setTimeout(r, 4000));
 
