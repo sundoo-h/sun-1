@@ -204,10 +204,10 @@
             showToast("✅ Google API 키가 성공적으로 저장되었습니다!");
         }
 
-        function getGeminiTextApiUrl() {
+        function getGeminiTextApiUrl(model = 'gemini-2.0-flash') {
             const key = getApiKey();
             if (!key) throw new Error("Google API 키가 설정되지 않았습니다. 상단 [Google API Key] 입력창에 키를 입력 후 [💾 키 저장]을 클릭해 주세요!");
-            return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+            return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
         }
 
         function getGeminiImageApiUrl() {
@@ -617,31 +617,31 @@
                 systemInstruction: { parts: [{ text: systemPrompt }] }
             };
 
+            const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
             let response;
-            for (let i = 0; i < 3; i++) {
+            let lastErr = "";
+
+            for (let model of fallbackModels) {
                 try {
-                    response = await fetch(getGeminiTextApiUrl(), {
+                    response = await fetch(getGeminiTextApiUrl(model), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                     if (response.ok) break;
-                } catch(e) {}
-                await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+                    else {
+                        const errJson = await response.json().catch(() => ({}));
+                        lastErr = errJson.error?.message || `HTTP ${response.status}`;
+                    }
+                } catch(e) {
+                    lastErr = e.message;
+                }
+                await new Promise(r => setTimeout(r, 1000));
             }
 
             if (!response || !response.ok) {
                 loadingOverlay.classList.remove('flex'); loadingOverlay.classList.add('hidden');
-                let errDetail = response ? `HTTP ${response.status}` : "통신 불가";
-                if (response) {
-                    try {
-                        const errJson = await response.json();
-                        if (errJson.error && errJson.error.message) {
-                            errDetail += ` - ${errJson.error.message}`;
-                        }
-                    } catch(e) {}
-                }
-                throw new Error("원고 변환 API 오류 (" + errDetail + ")");
+                throw new Error("원고 변환 API 오류 (" + lastErr + ")");
             }
             
             const data = await response.json();
@@ -694,13 +694,21 @@
                 generationConfig: { responseMimeType: "application/json" }
             };
 
-            const response = await fetch(getGeminiTextApiUrl(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+            let response;
+            for (let model of fallbackModels) {
+                try {
+                    response = await fetch(getGeminiTextApiUrl(model), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) break;
+                } catch(e) {}
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
-            if (!response.ok) throw new Error("프롬프트 설계 API 서버 오류");
+            if (!response || !response.ok) throw new Error("프롬프트 설계 API 서버 오류");
             const data = await response.json();
             const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
             
