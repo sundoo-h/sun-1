@@ -295,41 +295,69 @@ function escapeHtml(str) {
 
 // 2번칸 원고 구조 분석 함수
 function parseConvertedText(text) {
-  let title = "다리 통증 개선을 돕는 하지정맥류 비수술 치료 방법";
+  let title = "사타구니 부위의 혹, 탈장인지 확인해야 할 필요성";
   let tocList = [];
   let introText = "";
   let sections = [];
   let outroText = "";
 
-  const titleMatch = text.match(/제목:\s*(.+)/);
-  if (titleMatch) title = titleMatch[1].trim();
+  if (!text || !text.trim()) {
+    return { title, tocList: ["소제목 1", "소제목 2", "소제목 3", "소제목 4"], introText: "", sections: [], outroText: "" };
+  }
 
-  // 목차 추출
-  const tocMatches = text.matchAll(/\d\.\s*(.+)/g);
-  for (let m of tocMatches) {
-    if (tocList.length < 4 && !tocList.includes(m[1].trim())) {
-      tocList.push(m[1].trim());
+  const lines = text.split('\n');
+
+  // 1. 제목 추출
+  const titleMatch = text.match(/제목:\s*(.+)/);
+  if (titleMatch) {
+    title = titleMatch[1].trim();
+  } else {
+    for (let line of lines) {
+      const t = line.trim();
+      if (t && !t.startsWith('목차') && !t.startsWith('[') && !t.startsWith('#')) {
+        title = t;
+        break;
+      }
     }
   }
 
-  // 본문 파싱 (소제목 1, 2, 3, 4 분리)
-  const lines = text.split('\n');
+  // 2. 소제목 파싱 (1. 2. 3. 4. 패턴 및 본문 분해)
   let currentSection = null;
-  let stage = 'intro'; // 'intro', 'section', 'outro'
+  let stage = 'intro';
 
-  for (let line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('제목:') || trimmed.startsWith('목차') || trimmed.startsWith('[') || trimmed.startsWith('---')) continue;
+    if (!trimmed) continue;
 
-    const subTitleMatch = trimmed.match(/^(\d\.\s*.+)/);
-    if (subTitleMatch && tocList.some(toc => trimmed.includes(toc))) {
+    if (trimmed.startsWith('제목:') || trimmed.startsWith('---') || trimmed.includes('사진 묘사 프롬프트')) continue;
+    if (trimmed === '목차') continue;
+
+    // 소제목 패턴: "1. 소제목", "1) 소제목", "1.소제목"
+    const subTitleMatch = trimmed.match(/^(\d+[\.\)]\s*(.+))/);
+    
+    if (subTitleMatch) {
+      const cleanSubTitle = subTitleMatch[1].trim();
+      const subTitleName = subTitleMatch[2].trim();
+
+      if (!tocList.includes(subTitleName) && tocList.length < 4) {
+        tocList.push(subTitleName);
+      }
+
+      if (currentSection) {
+        sections.push(currentSection);
+      }
+      currentSection = { subTitle: cleanSubTitle, content: "" };
       stage = 'section';
-      if (currentSection) sections.push(currentSection);
-      currentSection = { subTitle: subTitleMatch[1], content: "" };
-    } else if (stage === 'intro') {
-      introText += trimmed + "\n";
+      continue;
+    }
+
+    if (stage === 'intro') {
+      if (!trimmed.startsWith('#')) {
+        introText += trimmed + "\n";
+      }
     } else if (stage === 'section') {
-      if (sections.length >= 4 && !subTitleMatch) {
+      if (trimmed.startsWith('#')) {
         stage = 'outro';
         outroText += trimmed + "\n";
       } else if (currentSection) {
@@ -339,7 +367,20 @@ function parseConvertedText(text) {
       outroText += trimmed + "\n";
     }
   }
-  if (currentSection) sections.push(currentSection);
+
+  if (currentSection && !sections.includes(currentSection)) {
+    sections.push(currentSection);
+  }
+
+  // 3. 소제목 파싱 보정 (소제목이 부족할 경우 기본 4개 생성)
+  if (tocList.length === 0) {
+    tocList = [
+      "사타구니 혹과 탈장의 차이점",
+      "서혜부 탈장이 발생하는 주요 원인",
+      "진행 정도에 따른 치료와 수술 방법",
+      "일상 속 예방법과 생활 습관 관리"
+    ];
+  }
 
   return { title, tocList, introText, sections, outroText };
 }
