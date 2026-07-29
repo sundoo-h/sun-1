@@ -63,6 +63,21 @@
             </button>
         </div>
 
+        <!-- Google API Key Setting Bar -->
+        <div class="bg-blue-50/80 border border-blue-200 rounded-xl p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-2 text-sm font-bold text-blue-900">
+                <i class="fas fa-key text-blue-600"></i>
+                <span>Google API Key:</span>
+                <span class="text-xs font-normal text-blue-700">(AI 원고 변환 및 일러스트 생성을 위한 구글 AI 스튜디오 API 키)</span>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <input type="password" id="apiKeyInput" class="flex-grow sm:w-80 border border-blue-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500" placeholder="AIzaSy... (구글 API 키를 입력하세요)">
+                <button onclick="saveApiKey()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
+                    💾 키 저장
+                </button>
+            </div>
+        </div>
+
         <!-- 텍스트 에디터 영역 -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- Left Column: Box 1 & Box 3 -->
@@ -181,10 +196,30 @@
     </div>
 
     <script>
-        // --- Shared API Key Setup ---
-        const apiKey = ""; // API Key provided by the environment
-        const GEMINI_TEXT_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-        const GEMINI_IMAGE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+        // --- Dynamic Google API Key Setup ---
+        function getApiKey() {
+            return localStorage.getItem('gemini_api_key') || "";
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            const val = input ? input.value.trim() : "";
+            if (!val) { alert("Google API 키를 입력해 주세요."); return; }
+            localStorage.setItem('gemini_api_key', val);
+            showToast("✅ Google API 키가 성공적으로 저장되었습니다!");
+        }
+
+        function getGeminiTextApiUrl() {
+            const key = getApiKey();
+            if (!key) throw new Error("Google API 키가 설정되지 않았습니다. 상단 [Google API Key] 입력창에 키를 입력 후 [💾 키 저장]을 클릭해 주세요!");
+            return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+        }
+
+        function getGeminiImageApiUrl() {
+            const key = getApiKey();
+            if (!key) throw new Error("Google API 키가 설정되지 않았습니다. 상단 [Google API Key] 입력창에 키를 입력 후 [💾 키 저장]을 클릭해 주세요!");
+            return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${key}`;
+        }
 
         // ==========================================
         // [1] 변수 및 상태 관리
@@ -590,7 +625,7 @@
             let response;
             for (let i = 0; i < 3; i++) {
                 try {
-                    response = await fetch(GEMINI_TEXT_API_URL, {
+                    response = await fetch(getGeminiTextApiUrl(), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -655,7 +690,7 @@
                 generationConfig: { responseMimeType: "application/json" }
             };
 
-            const response = await fetch(GEMINI_TEXT_API_URL, {
+            const response = await fetch(getGeminiTextApiUrl(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -739,7 +774,7 @@
                     contents: [{ role: 'user', parts: [{ text: prompt }] }],
                     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: "1:1" } }
                 };
-                const response = await fetch(GEMINI_IMAGE_API_URL, {
+                const response = await fetch(getGeminiImageApiUrl(), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -831,6 +866,11 @@
         window.onload = () => {
             initTextEditor();
             initImageGenerator(); // 초기 렌더링 (대기 상태)
+            const savedKey = getApiKey();
+            if (savedKey) {
+                const input = document.getElementById('apiKeyInput');
+                if (input) input.value = savedKey;
+            }
         };
     </script>
 </body>
