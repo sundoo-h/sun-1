@@ -369,8 +369,8 @@ app.post('/api/convert-text', async (req, res) => {
 
   let lastErr = "";
   for (let baseUrl of modelsToTry) {
-    // 구글 무료 계정 43초~60초 락을 오류 없이 흡수하는 4단계 백오프 (5s, 10s, 20s, 30s)
-    const delays = [5000, 10000, 20000, 30000];
+    // 유료 승격 완료: 초고속 응답 (1s, 2s)
+    const delays = [1000, 2000];
     for (let retry = 0; retry < delays.length; retry++) {
       try {
         const response = await fetch(`${baseUrl}?key=${key}`, {
@@ -389,7 +389,6 @@ app.post('/api/convert-text', async (req, res) => {
           const errJson = await response.json().catch(() => ({}));
           lastErr = errJson.error?.message || `HTTP ${response.status}`;
           if (response.status === 429) {
-            console.log(`[Google API] 무료 계정 락(429) 감지. ${delays[retry]/1000}초 대기 후 백그라운드 자동 재시도 중...`);
             await new Promise(r => setTimeout(r, delays[retry]));
             continue;
           } else {
