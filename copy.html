@@ -207,13 +207,13 @@
         function getGeminiTextApiUrl() {
             const key = getApiKey();
             if (!key) throw new Error("Google API 키가 설정되지 않았습니다. 상단 [Google API Key] 입력창에 키를 입력 후 [💾 키 저장]을 클릭해 주세요!");
-            return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+            return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
         }
 
         function getGeminiImageApiUrl() {
             const key = getApiKey();
             if (!key) throw new Error("Google API 키가 설정되지 않았습니다. 상단 [Google API Key] 입력창에 키를 입력 후 [💾 키 저장]을 클릭해 주세요!");
-            return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${key}`;
+            return `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateContent?key=${key}`;
         }
 
         // ==========================================
@@ -632,7 +632,16 @@
 
             if (!response || !response.ok) {
                 loadingOverlay.classList.remove('flex'); loadingOverlay.classList.add('hidden');
-                throw new Error("원고 변환 API 서버 오류");
+                let errDetail = response ? `HTTP ${response.status}` : "통신 불가";
+                if (response) {
+                    try {
+                        const errJson = await response.json();
+                        if (errJson.error && errJson.error.message) {
+                            errDetail += ` - ${errJson.error.message}`;
+                        }
+                    } catch(e) {}
+                }
+                throw new Error("원고 변환 API 오류 (" + errDetail + ")");
             }
             
             const data = await response.json();
