@@ -609,26 +609,38 @@
                 systemInstruction: { parts: [{ text: systemPrompt }] }
             };
 
-            const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
+            const validModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
             let response;
             let lastErr = "";
 
-            for (let model of fallbackModels) {
-                try {
-                    response = await fetch(getGeminiTextApiUrl(model), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (response.ok) break;
-                    else {
-                        const errJson = await response.json().catch(() => ({}));
-                        lastErr = errJson.error?.message || `HTTP ${response.status}`;
+            for (let model of validModels) {
+                for (let retry = 0; retry < 3; retry++) {
+                    try {
+                        response = await fetch(getGeminiTextApiUrl(model), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.ok) {
+                            break;
+                        } else {
+                            const errJson = await response.json().catch(() => ({}));
+                            lastErr = errJson.error?.message || `HTTP ${response.status}`;
+                            
+                            if (response.status === 429) {
+                                await new Promise(r => setTimeout(r, 3000));
+                                continue;
+                            } else {
+                                break;
+                            }
+                        }
+                    } catch(e) {
+                        lastErr = e.message;
+                        await new Promise(r => setTimeout(r, 1500));
                     }
-                } catch(e) {
-                    lastErr = e.message;
                 }
-                await new Promise(r => setTimeout(r, 2500));
+                if (response && response.ok) break;
             }
 
             if (!response || !response.ok) {
