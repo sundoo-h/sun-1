@@ -107,32 +107,55 @@ async function runNaverPostBot(convertedText, options = {}) {
 
     // 2. 제목 입력
     console.log("✍️ [제목 입력 중...]");
-    const titleArea = await page.$('.se-documentTitle, .se-title-text, [contenteditable="true"]');
+    const titleArea = await page.$('.se-documentTitle, .se-title-text, .se-ff-nanumgothic.se-fs15');
     if (titleArea) {
       await titleArea.click();
       await new Promise(r => setTimeout(r, 500));
       await page.keyboard.type(parsedData.title, { delay: 30 });
     }
 
-    // 본문 에디터로 포커스 이동
-    await page.keyboard.press('Enter');
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 800));
 
-    // 3. 네이버 블로그 샘플(224361192618) 완벽 서식 HTML 합성 및 Direct Injection
-    console.log("🎨 [샘플 포맷 서식 HTML 합성 및 에디터 주입 중...]");
+    // 3. 본문 에디터 영역을 마우스로 직접 클릭하여 확실한 포커스 확보
+    console.log("🎨 [샘플 포맷 서식 HTML 합성 및 본문 주입 중...]");
     
+    // 본문 컨테이너 클릭
+    try {
+      const bodyTarget = await page.$('.se-main-container .se-content, .se-component-text, .se-text-paragraph, [contenteditable="true"]:not(.se-documentTitle)');
+      if (bodyTarget) {
+        await bodyTarget.click();
+        await new Promise(r => setTimeout(r, 500));
+      } else {
+        await page.keyboard.press('Enter');
+        await new Promise(r => setTimeout(r, 500));
+      }
+    } catch(e) {
+      await page.keyboard.press('Enter');
+    }
+
     const formattedHtml = generateSampleFormatHtml(parsedData);
 
-    // 본문 에디터 영역 포커스 후 execCommand insertHTML 실행
+    // 본문 에디터 노드에 execCommand insertHTML 및 innerHTML 2중 주입
     await page.evaluate((htmlContent) => {
-      const editorArea = document.querySelector('.se-main-container, .se-content, [contenteditable="true"]:not(.se-documentTitle)');
-      if (editorArea) {
-        editorArea.focus();
-        document.execCommand('insertHTML', false, htmlContent);
+      // 본문 작성 가능 에디터 노드 탐색
+      const targetNodes = Array.from(document.querySelectorAll('[contenteditable="true"]'));
+      let bodyNode = targetNodes.find(node => !node.classList.contains('se-documentTitle') && !node.closest('.se-documentTitle'));
+      
+      if (!bodyNode) {
+        bodyNode = document.querySelector('.se-main-container, .se-content');
+      }
+
+      if (bodyNode) {
+        bodyNode.focus();
+        const success = document.execCommand('insertHTML', false, htmlContent);
+        if (!success) {
+          bodyNode.innerHTML += htmlContent;
+        }
       }
     }, formattedHtml);
 
-    await new Promise(r => setTimeout(r, 2000));
+    // 본문 내용이 네이버 에디터에 안착될 수 있도록 4초 대기
+    await new Promise(r => setTimeout(r, 4000));
 
     // 4. 네이버 스마트에디터 [저장] 버튼 정밀 클릭 매크로
     console.log("💾 [네이버 임시저장 버튼 클릭 시도...]");
