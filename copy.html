@@ -57,25 +57,19 @@
                     <i class="fas fa-hospital-user text-blue-600"></i> 선두 통합 에디터
                 </h1>
                 <p class="text-sm text-gray-500 mt-1">네이버 병원 블로그 상위노출 AI 원고 변환 & 원고 맞춤형 일러스트 동시 생성기</p>
+                
+                <!-- Google API Key Setting Line -->
+                <div class="mt-3.5 flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-bold text-gray-700"><i class="fas fa-key text-blue-600 mr-1"></i>Google API Key:</span>
+                    <input type="password" id="apiKeyInput" class="border border-gray-300 rounded-lg px-3 py-1 text-xs outline-none focus:ring-2 focus:ring-blue-500 w-64 shadow-inner" placeholder="AIzaSy... (구글 API 키)">
+                    <button onclick="saveApiKey()" class="bg-gray-800 hover:bg-black text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors whitespace-nowrap shadow-sm">
+                        💾 저장
+                    </button>
+                </div>
             </div>
-            <button id="masterActionBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 w-full md:w-auto text-lg animate-pulse hover:animate-none">
+            <button id="masterActionBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 w-full md:w-auto text-lg animate-pulse hover:animate-none shrink-0">
                 <i class="fas fa-magic"></i> 원고 변환 & 맞춤 일러스트 생성 시작
             </button>
-        </div>
-
-        <!-- Google API Key Setting Bar -->
-        <div class="bg-blue-50/80 border border-blue-200 rounded-xl p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div class="flex items-center gap-2 text-sm font-bold text-blue-900">
-                <i class="fas fa-key text-blue-600"></i>
-                <span>Google API Key:</span>
-                <span class="text-xs font-normal text-blue-700">(AI 원고 변환 및 일러스트 생성을 위한 구글 AI 스튜디오 API 키)</span>
-            </div>
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-                <input type="password" id="apiKeyInput" class="flex-grow sm:w-80 border border-blue-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500" placeholder="AIzaSy... (구글 API 키를 입력하세요)">
-                <button onclick="saveApiKey()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
-                    💾 키 저장
-                </button>
-            </div>
         </div>
 
         <!-- 텍스트 에디터 영역 -->
@@ -123,7 +117,7 @@
                     </div>
 
                     <!-- Header Tools -->
-                    <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3 pb-3 border-b border-gray-100">
                         <div class="flex items-center gap-3 flex-wrap">
                             <h2 class="text-lg font-bold text-gray-800"><span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-sm mr-1">2번칸</span> 변환된 원고</h2>
                             
@@ -137,11 +131,12 @@
                                 중복률: <span id="similarityCount" class="font-bold text-purple-600">0</span>%
                             </div>
                             
-                            <label class="flex items-center gap-1.5 text-sm cursor-pointer bg-yellow-50 text-yellow-800 hover:bg-yellow-100 px-2 py-1 rounded border border-yellow-200 transition-colors shadow-sm ml-2" title="원본과 똑같이 사용된 단어/문구를 노란색으로 표시합니다.">
+                            <label class="flex items-center gap-1.5 text-sm cursor-pointer bg-yellow-50 text-yellow-800 hover:bg-yellow-100 px-2 py-1 rounded border border-yellow-200 transition-colors shadow-sm" title="원본과 똑같이 사용된 단어/문구를 노란색으로 표시합니다.">
                                 <input type="checkbox" id="showDuplicatesToggle" class="accent-yellow-600 w-4 h-4 cursor-pointer" checked>
                                 <i class="fas fa-highlighter text-xs"></i> 원본 중복 표시
                             </label>
-                        <div class="flex items-center gap-2 shrink-0">
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                             <button id="naverPostBtn" onclick="handleNaverPost()" class="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded font-bold transition-colors flex items-center gap-1 shadow-sm">
                                 <i class="fas fa-paper-plane text-xs"></i> 📝 네이버 임시저장 전송
                             </button>
