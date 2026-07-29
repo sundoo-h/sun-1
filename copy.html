@@ -448,22 +448,14 @@
 
             try {
                 // Step 1: 텍스트 변환
-                masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [1/3] 원고 AI 변환 중...`;
+                masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [1/2] 원고 AI 변환 중...`;
                 const convertedText = await processTextConversion(originalText);
                 
-                // 네이버 블로그 포스팅 봇 자동 기동
+                // Step 2: 네이버 블로그 포스팅 봇 자동 기동
+                masterActionBtn.innerHTML = `<i class="fas fa-paper-plane"></i> [2/2] 네이버 블로그 포스팅 봇 구동 중...`;
                 handleNaverPost();
 
-                // Step 2: 생성된 텍스트를 기반으로 4개의 이미지 프롬프트 기획
-                masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [2/3] 맞춤 일러스트 프롬프트 설계 중...`;
-                await generateDynamicPrompts(convertedText);
-
-                // Step 3: 설계된 프롬프트로 UI 업데이트 및 이미지 생성 시작
-                masterActionBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> [3/3] 일러스트 생성 중 (하단 확인)`;
-                initImageGenerator(); // 바뀐 situations로 그리드 재생성
-                autoGenerateImages(); // 이미지 순차 생성 시작
-
-                masterActionBtn.innerHTML = `<i class="fas fa-check"></i> 작업 시작됨 (진행상황 하단 확인)`;
+                masterActionBtn.innerHTML = `<i class="fas fa-check"></i> 변환 & 네이버 전송 완료!`;
                 setTimeout(() => {
                     masterActionBtn.disabled = false;
                     masterActionBtn.innerHTML = originalBtnHtml;
