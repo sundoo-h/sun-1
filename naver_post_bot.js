@@ -74,18 +74,32 @@ async function runNaverPostBot(convertedText, options = {}) {
     await page.goto(editorUrl, { waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 4000));
 
-    // 팝업 처리 (이전 작성 중인 글 불러오기 취소 / 도움말 팝업 닫기)
+    // 팝업 처리 (작성 중인 글 불러오기 [취소] 무조건 클릭 / 도움말 팝업 닫기)
+    console.log("🚨 작성 중인 글 팝업 확인 및 [취소] 클릭 처리 중...");
     try {
-      await page.evaluate(() => {
-        const cancelBtns = Array.from(document.querySelectorAll('button, a'));
-        cancelBtns.forEach(btn => {
-          if (btn.innerText && (btn.innerText.includes('취소') || btn.innerText.includes('닫기'))) {
-            btn.click();
+      for (let i = 0; i < 6; i++) {
+        const clicked = await page.evaluate(() => {
+          let found = false;
+          const cancelBtns = Array.from(document.querySelectorAll('.se-popup-button-cancel, .se-popup-button-container button, .se-popup-button, button, a'));
+          for (let btn of cancelBtns) {
+            const txt = btn.innerText ? btn.innerText.trim() : '';
+            if (txt === '취소' || txt.includes('취소') || txt.includes('닫기')) {
+              btn.click();
+              found = true;
+            }
           }
+          return found;
         });
-      });
+        if (clicked) {
+          console.log("✅ '작성 중인 글' 팝업 [취소] 버튼 자동 클릭 완료!");
+          break;
+        }
+        await new Promise(r => setTimeout(r, 500));
+      }
       await new Promise(r => setTimeout(r, 1000));
-    } catch (e) {}
+    } catch (e) {
+      console.log("팝업 처리 스킵:", e.message);
+    }
 
     // 원고 구조 파싱
     const parsedData = parseConvertedText(convertedText);
