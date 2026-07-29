@@ -637,7 +637,7 @@
                 let lastErr = err.message || "";
 
                 for (let model of validModels) {
-                    const delays = [7000, 10000];
+                    const delays = [5000, 10000, 20000, 30000];
                     for (let retry = 0; retry < delays.length; retry++) {
                         try {
                             response = await fetch(getGeminiTextApiUrl(model), {
