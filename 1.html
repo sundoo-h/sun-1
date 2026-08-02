@@ -475,6 +475,12 @@
           </div>
         </div>
 
+        <!-- 4. 메모 작성 -->
+        <div class="space-y-1.5">
+          <label class="block font-bold text-gray-900">📝 리포트 메모 / 요약 분석 작성 (선택)</label>
+          <textarea id="input-memo" rows="3" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-xs leading-relaxed bg-white" placeholder="이 리포트에 대한 메모나 특이사항, 성과 요약을 자유롭게 입력하세요..."></textarea>
+        </div>
+
       </div>
 
       <!-- Modal Footer -->
@@ -552,6 +558,7 @@
         date: "2026.06.30",
         description: "신규 블로그 vs 기존 블로그 유입 키워드 및 방문자 통계 100% 비교 분석",
         category: "신규 vs 기존 비교",
+        memo: "",
         showAiSection: true, // 26년 6월은 네이버 AI 노출 섹션 포함
         images: {
           day: "/day.jpg",
@@ -841,6 +848,38 @@
         </div>
       ` : '';
 
+      // 메모 섹션 HTML 생성 ("일일방문자 통계 비교" 섹션 카드 위에 위치)
+      const memoSectionHtml = `
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <span>📝</span> ${rep.title} 리포트 메모 및 분석
+            </div>
+            <button id="memo-edit-btn-${rep.id}" onclick="enableMemoEdit('${rep.id}')" class="bg-gray-100 hover:bg-orange-500 hover:text-white text-gray-700 font-bold px-3 py-1.5 rounded-lg text-xs transition-all border border-gray-200 flex items-center gap-1">
+              ✏️ 메모 수정
+            </button>
+          </div>
+          
+          <!-- 메모 Display 영역 -->
+          <div id="memo-display-${rep.id}" class="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap font-medium p-1">
+            ${rep.memo ? escapeHtml(rep.memo) : '<span class="text-gray-400 italic">등록된 메모가 없습니다. [✏️ 메모 수정] 버튼을 눌러 메모를 작성해보세요.</span>'}
+          </div>
+
+          <!-- 메모 Editor 영역 (Hidden) -->
+          <div id="memo-editor-${rep.id}" class="hidden space-y-3 mt-2">
+            <textarea id="memo-input-${rep.id}" rows="4" class="w-full p-3.5 border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-xs font-sans leading-relaxed bg-white" placeholder="이 리포트에 대한 메모나 특이사항, 요약 분석을 입력하세요...">${rep.memo ? escapeHtml(rep.memo) : ''}</textarea>
+            <div class="flex justify-end gap-2">
+              <button onclick="cancelMemoEdit('${rep.id}')" class="px-3.5 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl text-xs transition-all">
+                ❌ 취소
+              </button>
+              <button onclick="saveMemo('${rep.id}')" class="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-xl text-xs transition-all shadow-md active:scale-95">
+                💾 저장 (영구 저장)
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
       // 전체 리포트 템플릿 결합
       container.innerHTML = `
         <header class="report-header">
@@ -850,6 +889,8 @@
           <h1>블로그 비교 분석 리포트</h1>
           <div class="subtitle">신규 블로그와 기존 블로그의 유입 및 성과 비교</div>
         </header>
+
+        ${memoSectionHtml}
 
         ${imageSectionHtml}
 
@@ -981,6 +1022,7 @@
       
       document.getElementById("input-new-keywords").value = "";
       document.getElementById("input-old-keywords").value = "";
+      if (document.getElementById("input-memo")) document.getElementById("input-memo").value = "";
       
       uploadedNewImgBase64 = "";
       uploadedOldImgBase64 = "";
@@ -1015,6 +1057,7 @@
 
       const rawNew = document.getElementById("input-new-keywords").value;
       const rawOld = document.getElementById("input-old-keywords").value;
+      const memo = document.getElementById("input-memo") ? document.getElementById("input-memo").value.trim() : "";
 
       const newKw = rawNew.split(/[\n,]/).map(k => k.trim()).filter(k => k);
       const oldKw = rawOld.split(/[\n,]/).map(k => k.trim()).filter(k => k);
@@ -1026,6 +1069,7 @@
         date: date || "2026.07.30",
         description: `신규 블로그 vs 기존 블로그 비교 리포트 (${title})`,
         category: "신규 vs 기존 비교",
+        memo: memo,
         showAiSection: false, // 26년 7월부터는 네이버 AI 노출 섹션 미노출
         images: {
           new: uploadedNewImgBase64,
@@ -1052,6 +1096,54 @@
         document.getElementById("report-view-container").scrollIntoView({ behavior: 'smooth' });
       }, 100);
     });
+
+    // ----------------------------------------------------
+    // 6-1. Memo Inline Editing Functions
+    // ----------------------------------------------------
+    function enableMemoEdit(id) {
+      const displayEl = document.getElementById(`memo-display-${id}`);
+      const editorEl = document.getElementById(`memo-editor-${id}`);
+      const editBtn = document.getElementById(`memo-edit-btn-${id}`);
+      if (displayEl && editorEl) {
+        displayEl.classList.add("hidden");
+        editorEl.classList.remove("hidden");
+        if (editBtn) editBtn.classList.add("hidden");
+      }
+    }
+
+    function cancelMemoEdit(id) {
+      const displayEl = document.getElementById(`memo-display-${id}`);
+      const editorEl = document.getElementById(`memo-editor-${id}`);
+      const editBtn = document.getElementById(`memo-edit-btn-${id}`);
+      if (displayEl && editorEl) {
+        displayEl.classList.remove("hidden");
+        editorEl.classList.add("hidden");
+        if (editBtn) editBtn.classList.remove("hidden");
+      }
+    }
+
+    function saveMemo(id) {
+      const inputEl = document.getElementById(`memo-input-${id}`);
+      if (!inputEl) return;
+      const newMemo = inputEl.value.trim();
+      
+      const targetRep = monthlyReports.find(r => r.id === id);
+      if (targetRep) {
+        targetRep.memo = newMemo;
+        saveReportsData(true);
+        renderReportView(id);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
 
     // ----------------------------------------------------
     // 7. Backup & Restore (JSON Export / Import)
