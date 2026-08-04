@@ -363,7 +363,6 @@
             <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold">
               <th class="py-3 px-4 w-16 text-center">번호</th>
               <th class="py-3 px-4">제목</th>
-              <th class="py-3 px-4 w-32">작성일</th>
               <th class="py-3 px-4 w-40 text-center">분석 구분</th>
               <th class="py-3 px-4 w-44 text-center">상태 / 관리</th>
             </tr>
@@ -715,7 +714,6 @@
             </div>
             <div class="text-[11px] text-gray-400 mt-0.5">${rep.description || '신규 블로그 vs 기존 블로그 비교 리포트'}</div>
           </td>
-          <td class="py-3.5 px-4 text-gray-500 font-mono">${rep.date}</td>
           <td class="py-3.5 px-4 text-center">
             <span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full text-[11px] font-bold border border-indigo-100">
               ${rep.category || '신규 vs 기존 비교'}
@@ -944,9 +942,6 @@
       // 전체 리포트 템플릿 결합
       container.innerHTML = `
         <header class="report-header">
-          <div class="inline-block bg-orange-100 text-orange-700 text-xs font-extrabold px-3 py-1 rounded-full mb-3">
-            선택된 리포트: ${rep.title} (작성일: ${rep.date})
-          </div>
           <h1>블로그 비교 분석 리포트</h1>
           <div class="subtitle">신규 블로그와 기존 블로그의 유입 및 성과 비교</div>
         </header>
