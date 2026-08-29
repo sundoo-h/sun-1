@@ -1095,7 +1095,7 @@
     }
 
     // ----------------------------------------------------
-    // 6. Write Modal Management & Post Creation
+    // 6. Write & Edit Modal Management
     // ----------------------------------------------------
     const writeModal = document.getElementById("write-modal");
     const openModalBtn = document.getElementById("open-write-modal-btn");
@@ -1103,8 +1103,18 @@
     const cancelModalBtn = document.getElementById("cancel-write-modal-btn");
     const saveReportBtn = document.getElementById("save-report-btn");
 
+    let editingReportId = null;
+
     function openModal() {
-      document.getElementById("input-title").value = "26년 7월";
+      editingReportId = null;
+      if (document.getElementById("write-modal-title")) {
+        document.getElementById("write-modal-title").innerHTML = "<span>✏️</span> 월간 통계 리포트 등록";
+      }
+      if (document.getElementById("save-report-btn")) {
+        document.getElementById("save-report-btn").innerHTML = "💾 리포트 등록 및 영구 저장";
+      }
+
+      document.getElementById("input-title").value = "26년 8월";
       const today = new Date();
       const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
       document.getElementById("input-date").value = dateStr;
@@ -1128,6 +1138,60 @@
         <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [최근 1주 통계] 스크린샷</span>
         <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
       `;
+
+      writeModal.classList.remove("hidden");
+    }
+
+    function openEditModal(e, id) {
+      if (e) e.stopPropagation();
+      const rep = monthlyReports.find(r => r.id === id);
+      if (!rep) return;
+
+      editingReportId = id;
+      if (document.getElementById("write-modal-title")) {
+        document.getElementById("write-modal-title").innerHTML = `<span>✏️</span> 월간 통계 리포트 수정 (${rep.title})`;
+      }
+      if (document.getElementById("save-report-btn")) {
+        document.getElementById("save-report-btn").innerHTML = "💾 수정사항 저장 및 영구 반영";
+      }
+
+      document.getElementById("input-title").value = rep.title || "";
+      document.getElementById("input-date").value = rep.date || "";
+      
+      document.getElementById("input-new-keywords").value = (rep.newKeywords || []).join('\n');
+      document.getElementById("input-old-keywords").value = (rep.oldKeywords || []).join('\n');
+      if (document.getElementById("input-memo")) document.getElementById("input-memo").value = rep.memo || "";
+      if (document.getElementById("input-new-daily-text")) document.getElementById("input-new-daily-text").value = rep.newDailyRaw || "";
+      if (document.getElementById("input-old-daily-text")) document.getElementById("input-old-daily-text").value = rep.oldDailyRaw || "";
+
+      uploadedNewImgBase64 = rep.images?.new || rep.images?.day || "";
+      uploadedOldImgBase64 = rep.images?.old || rep.images?.week || "";
+
+      if (uploadedNewImgBase64) {
+        document.getElementById("preview-new-img").innerHTML = `
+          <img src="${uploadedNewImgBase64}" class="max-h-24 rounded shadow border border-gray-200 mb-1">
+          <span class="text-[10px] text-green-600 font-bold">✅ 기존 이미지 등록됨 (클릭하여 변경)</span>
+        `;
+      } else {
+        document.getElementById("preview-new-img").innerHTML = `
+          <span class="text-2xl">🟧</span>
+          <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [최근 1주 통계] 스크린샷</span>
+          <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
+        `;
+      }
+
+      if (uploadedOldImgBase64) {
+        document.getElementById("preview-old-img").innerHTML = `
+          <img src="${uploadedOldImgBase64}" class="max-h-24 rounded shadow border border-gray-200 mb-1">
+          <span class="text-[10px] text-indigo-600 font-bold">✅ 기존 이미지 등록됨 (클릭하여 변경)</span>
+        `;
+      } else {
+        document.getElementById("preview-old-img").innerHTML = `
+          <span class="text-2xl">🟦</span>
+          <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [최근 1주 통계] 스크린샷</span>
+          <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
+        `;
+      }
 
       writeModal.classList.remove("hidden");
     }
@@ -1165,30 +1229,51 @@
       const newKw = cleanKwList(rawNewKw);
       const oldKw = cleanKwList(rawOldKw);
 
-      const newId = `rep-${Date.now()}`;
-      const newReportObj = {
-        id: newId,
-        title: title,
-        date: date || "2026.07.30",
-        description: `신규 블로그 vs 기존 블로그 비교 리포트 (${title})`,
-        category: "신규 vs 기존 비교",
-        memo: memo,
-        newDailyRaw: rawNewDaily,
-        oldDailyRaw: rawOldDaily,
-        newDailyList: newDailyList,
-        oldDailyList: oldDailyList,
-        showAiSection: false, // 26년 7월부터는 네이버 AI 노출 섹션 미노출
-        images: {
-          new: uploadedNewImgBase64,
-          old: uploadedOldImgBase64
-        },
-        newKeywords: newKw,
-        oldKeywords: oldKw
-      };
+      if (editingReportId) {
+        // 기존 리포트 수정
+        const rep = monthlyReports.find(r => r.id === editingReportId);
+        if (rep) {
+          rep.title = title;
+          rep.date = date;
+          rep.memo = memo;
+          rep.newDailyRaw = rawNewDaily;
+          rep.oldDailyRaw = rawOldDaily;
+          rep.newDailyList = newDailyList;
+          rep.oldDailyList = oldDailyList;
+          if (!rep.images) rep.images = {};
+          if (uploadedNewImgBase64) rep.images.new = uploadedNewImgBase64;
+          if (uploadedOldImgBase64) rep.images.old = uploadedOldImgBase64;
+          rep.newKeywords = newKw;
+          rep.oldKeywords = oldKw;
 
-      // 목록에 추가
-      monthlyReports.push(newReportObj);
-      currentSelectedId = newId;
+          currentSelectedId = editingReportId;
+        }
+      } else {
+        // 새 리포트 작성
+        const newId = `rep-${Date.now()}`;
+        const newReportObj = {
+          id: newId,
+          title: title,
+          date: date || "2026.07.30",
+          description: `신규 블로그 vs 기존 블로그 비교 리포트 (${title})`,
+          category: "신규 vs 기존 비교",
+          memo: memo,
+          newDailyRaw: rawNewDaily,
+          oldDailyRaw: rawOldDaily,
+          newDailyList: newDailyList,
+          oldDailyList: oldDailyList,
+          showAiSection: false, // 26년 7월부터는 네이버 AI 노출 섹션 미노출
+          images: {
+            new: uploadedNewImgBase64,
+            old: uploadedOldImgBase64
+          },
+          newKeywords: newKw,
+          oldKeywords: oldKw
+        };
+
+        monthlyReports.push(newReportObj);
+        currentSelectedId = newId;
+      }
 
       // 데이터 영구 저장
       saveReportsData(true);
@@ -1196,9 +1281,9 @@
       // UI 갱신
       closeModal();
       renderBoard();
-      renderReportView(newId);
+      renderReportView(currentSelectedId);
 
-      // 신규 리포트 위치로 부드러운 스크롤
+      // 리포트 위치로 부드러운 스크롤
       setTimeout(() => {
         document.getElementById("report-view-container").scrollIntoView({ behavior: 'smooth' });
       }, 100);
