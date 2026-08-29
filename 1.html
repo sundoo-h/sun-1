@@ -608,6 +608,44 @@
       "갑상선저하증", "갑상선초음파 색깔", "게실염 노원구"
     ];
 
+    // ----------------------------------------------------
+    // 0. Visitor Text Parsing Helper
+    // ----------------------------------------------------
+    function parseVisitorText(rawText) {
+      if (!rawText) return [];
+      const lines = rawText.split('\n');
+      const result = [];
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        if (trimmed.startsWith('날짜') || trimmed.startsWith('기간')) return;
+
+        // 탭(\t) 또는 2개 이상의 공백으로 분리
+        const parts = trimmed.split(/[\t]+|  +/);
+        if (parts.length >= 2) {
+          const datePart = parts[0].trim();
+          const countPart = parts[parts.length - 1].trim();
+          const countMatch = countPart.replace(/,/g, '').match(/\d+/);
+          if (countMatch) {
+            result.push({
+              date: datePart,
+              count: parseInt(countMatch[0], 10)
+            });
+          }
+        } else {
+          // 일반 공백 분리 시도 (예: 2026.07.31. (금) 16 또는 2026.07. 월간 436)
+          const matches = trimmed.match(/^([\d\.\s\(\)\w가-힣]+?)\s+([\d,]+)명?$/);
+          if (matches) {
+            result.push({
+              date: matches[1].trim(),
+              count: parseInt(matches[2].replace(/,/g, ''), 10)
+            });
+          }
+        }
+      });
+      return result;
+    }
+
     const seedNewMonthlyRaw = `2026.07. 월간\t436
 2026.06. 월간\t362
 2026.05. 월간\t147`;
@@ -660,6 +698,22 @@
         monthlyReports = [...initialReports];
       }
 
+      // 월간 방문자 데이터 파싱 보장 (2026-06 기본 데이터 포함)
+      if (Array.isArray(monthlyReports)) {
+        monthlyReports.forEach(rep => {
+          if (rep.id === "2026-06") {
+            rep.newMonthlyRaw = seedNewMonthlyRaw;
+            rep.oldMonthlyRaw = seedOldMonthlyRaw;
+          }
+          if (rep.newMonthlyRaw && (!rep.newMonthlyList || rep.newMonthlyList.length === 0)) {
+            rep.newMonthlyList = parseVisitorText(rep.newMonthlyRaw);
+          }
+          if (rep.oldMonthlyRaw && (!rep.oldMonthlyList || rep.oldMonthlyList.length === 0)) {
+            rep.oldMonthlyList = parseVisitorText(rep.oldMonthlyRaw);
+          }
+        });
+      }
+
       // 디폴트 선택 게시글을 가장 최근 게시글(마지막 항목)로 설정
       if (Array.isArray(monthlyReports) && monthlyReports.length > 0) {
         currentSelectedId = monthlyReports[monthlyReports.length - 1].id;
@@ -671,6 +725,18 @@
         .then(data => {
           if (data.success && Array.isArray(data.reports) && data.reports.length > 0) {
             monthlyReports = data.reports;
+            monthlyReports.forEach(rep => {
+              if (rep.id === "2026-06") {
+                rep.newMonthlyRaw = seedNewMonthlyRaw;
+                rep.oldMonthlyRaw = seedOldMonthlyRaw;
+              }
+              if (rep.newMonthlyRaw && (!rep.newMonthlyList || rep.newMonthlyList.length === 0)) {
+                rep.newMonthlyList = parseVisitorText(rep.newMonthlyRaw);
+              }
+              if (rep.oldMonthlyRaw && (!rep.oldMonthlyList || rep.oldMonthlyList.length === 0)) {
+                rep.oldMonthlyList = parseVisitorText(rep.oldMonthlyRaw);
+              }
+            });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(monthlyReports));
             if (monthlyReports.length > 0) {
               currentSelectedId = monthlyReports[monthlyReports.length - 1].id;
@@ -1355,42 +1421,8 @@
     });
 
     // ----------------------------------------------------
-    // 6-1. Visitor Text Parsing & Naver Stat Rendering Engine
+    // 6-1. Naver Stat Rendering Engine
     // ----------------------------------------------------
-    function parseVisitorText(rawText) {
-      if (!rawText) return [];
-      const lines = rawText.split('\n');
-      const result = [];
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return;
-        if (trimmed.startsWith('날짜') || trimmed.startsWith('기간')) return;
-
-        // 탭(\t) 또는 2개 이상의 공백으로 분리
-        const parts = trimmed.split(/[\t]+|  +/);
-        if (parts.length >= 2) {
-          const datePart = parts[0].trim();
-          const countPart = parts[parts.length - 1].trim();
-          const countMatch = countPart.replace(/,/g, '').match(/\d+/);
-          if (countMatch) {
-            result.push({
-              date: datePart,
-              count: parseInt(countMatch[0], 10)
-            });
-          }
-        } else {
-          // 일반 공백 분리 시도 (예: 2026.07.31. (금) 16 또는 2026.07. 월간 436)
-          const matches = trimmed.match(/^([\d\.\s\(\)\w가-힣]+?)\s+([\d,]+)명?$/);
-          if (matches) {
-            result.push({
-              date: matches[1].trim(),
-              count: parseInt(matches[2].replace(/,/g, ''), 10)
-            });
-          }
-        }
-      });
-      return result;
-    }
 
     function renderNaverStatCard(titleStr, dataList, colorTheme = "orange", isMonthly = false) {
       if (!dataList || dataList.length === 0) {
