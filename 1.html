@@ -652,13 +652,28 @@
     // ----------------------------------------------------
     // 3. Keyword Processing Engine (springmoons.pages.dev/cc 동기화)
     // ----------------------------------------------------
+    function stripPercentage(str) {
+      if (!str) return "";
+      let s = String(str).replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g, " ").trim();
+      // Remove percentage numbers at the end of keyword string (e.g., 0.18%, 12.34%, 1%)
+      return s.replace(/\s*\d+(\.\d+)?\s*%$/g, "").trim();
+    }
+
+    function stripPercentageFromText(text) {
+      if (!text) return "";
+      return text.split('\n').map(line => {
+        return line.split(',').map(item => stripPercentage(item)).join(', ');
+      }).join('\n');
+    }
+
     function normalize(str) {
       if (!str) return "";
-      return str.toLowerCase().replace(/\s+/g, "").replace(/,/g, "");
+      const cleaned = stripPercentage(str);
+      return cleaned.toLowerCase().replace(/\s+/g, "").replace(/,/g, "");
     }
 
     function hasPriorityPrefix(str) {
-      const trimmed = str.trim();
+      const trimmed = stripPercentage(str);
       return trimmed.startsWith("노원") || trimmed.startsWith("노원역") || trimmed.startsWith("노원구");
     }
 
@@ -666,7 +681,9 @@
       const prioGroup = [];
       const normalGroup = [];
 
-      list.forEach(kw => {
+      (list || []).forEach(rawKw => {
+        const kw = stripPercentage(rawKw);
+        if (!kw) return;
         const norm = normalize(kw);
         const isDup = otherListNormalized.includes(norm);
         const itemObj = { original: kw, normalized: norm, isDuplicate: isDup };
@@ -1123,8 +1140,14 @@
       const newDailyList = parseDailyText(rawNewDaily);
       const oldDailyList = parseDailyText(rawOldDaily);
 
-      const newKw = rawNewKw.split(/[\n,]/).map(k => k.trim()).filter(k => k);
-      const oldKw = rawOldKw.split(/[\n,]/).map(k => k.trim()).filter(k => k);
+      const cleanKwList = (rawText) => {
+        return (rawText || "").split(/[\n,]/)
+          .map(k => stripPercentage(k))
+          .filter(k => k);
+      };
+
+      const newKw = cleanKwList(rawNewKw);
+      const oldKw = cleanKwList(rawOldKw);
 
       const newId = `rep-${Date.now()}`;
       const newReportObj = {
@@ -1373,6 +1396,26 @@
       reader.readAsText(file);
     }
 
+    function setupKeywordAutoClean() {
+      ['input-new-keywords', 'input-old-keywords'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        
+        const clean = () => {
+          const original = el.value;
+          const cleaned = stripPercentageFromText(original);
+          if (original !== cleaned) {
+            el.value = cleaned;
+          }
+        };
+
+        el.addEventListener('paste', () => {
+          setTimeout(clean, 20);
+        });
+        el.addEventListener('blur', clean);
+      });
+    }
+
     // ----------------------------------------------------
     // Initial Execution
     // ----------------------------------------------------
@@ -1380,6 +1423,7 @@
       loadReportsData();
       renderBoard();
       renderReportView(currentSelectedId);
+      setupKeywordAutoClean();
     });
   </script>
 </body>
