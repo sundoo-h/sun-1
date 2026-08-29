@@ -420,9 +420,9 @@
           </div>
         </div>
 
-        <!-- 2. 최근 1주 방문자 통계 이미지 업로드 (신규 vs 기존) -->
+        <!-- 2. 월간 방문자 통계 이미지 업로드 (신규 vs 기존) -->
         <div class="space-y-2">
-          <label class="block font-bold text-gray-900">🖼️ 최근 1주 방문자 통계 스크린샷 이미지 업로드</label>
+          <label class="block font-bold text-gray-900">🖼️ 월간 방문자 통계 스크린샷 이미지 업로드</label>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             <!-- 신규 블로그 이미지 -->
@@ -430,7 +430,7 @@
               <input type="file" id="input-new-img" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview-new-img')">
               <div id="preview-new-img" class="flex flex-col items-center space-y-1">
                 <span class="text-2xl">🟧</span>
-                <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [최근 1주 통계] 스크린샷</span>
+                <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [월간 통계] 스크린샷</span>
                 <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
               </div>
             </div>
@@ -440,7 +440,7 @@
               <input type="file" id="input-old-img" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview-old-img')">
               <div id="preview-old-img" class="flex flex-col items-center space-y-1">
                 <span class="text-2xl">🟦</span>
-                <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [최근 1주 통계] 스크린샷</span>
+                <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [월간 통계] 스크린샷</span>
                 <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
               </div>
             </div>
@@ -827,11 +827,11 @@
             </div>
           </div>
 
-          <!-- SECTION 2: 최근 1주 방문자 통계 비교 -->
+          <!-- SECTION 2: 월간 방문자 통계 비교 -->
           <div class="section-card">
             <div class="section-header">
               <div class="section-title">
-                <span>📅</span> 최근 1주 방문자 통계 비교
+                <span>📅</span> 월간 방문자 통계 비교
               </div>
               <div class="badge-container">
                 <span class="badge badge-new">좌: 신규 블로그</span>
@@ -845,7 +845,7 @@
                 <div class="split-label-right">기존 블로그 ➡️</div>
               </div>
               <div class="img-wrapper">
-                <img src="${rep.images.week}" alt="최근 1주 방문자 통계 비교">
+                <img src="${rep.images.week}" alt="월간 방문자 통계 비교">
               </div>
             </div>
           </div>
@@ -872,15 +872,15 @@
         const weekImagesHtml = (newImgSrc || oldImgSrc) ? `
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
             <div class="img-wrapper shadow-sm border border-orange-200">
-              ${newImgSrc ? `<img src="${newImgSrc}" alt="신규 블로그 최근 1주 통계">` : `<div class="p-8 text-center text-orange-400 font-bold">신규 블로그 1주 스크린샷 미등록</div>`}
+              ${newImgSrc ? `<img src="${newImgSrc}" alt="신규 블로그 월간 통계">` : `<div class="p-8 text-center text-orange-400 font-bold">신규 블로그 월간 통계 스크린샷 미등록</div>`}
             </div>
             <div class="img-wrapper shadow-sm border border-indigo-200">
-              ${oldImgSrc ? `<img src="${oldImgSrc}" alt="기존 블로그 최근 1주 통계">` : `<div class="p-8 text-center text-indigo-400 font-bold">기존 블로그 1주 스크린샷 미등록</div>`}
+              ${oldImgSrc ? `<img src="${oldImgSrc}" alt="기존 블로그 월간 통계">` : `<div class="p-8 text-center text-indigo-400 font-bold">기존 블로그 월간 통계 스크린샷 미등록</div>`}
             </div>
           </div>
         ` : `
           <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-400 font-bold text-xs">
-            최근 1주 방문자 스크린샷 이미지가 등록되지 않았습니다.
+            월간 방문자 스크린샷 이미지가 등록되지 않았습니다.
           </div>
         `;
 
@@ -900,11 +900,11 @@
             ${dailyCardsHtml}
           </div>
 
-          <!-- SECTION 2: 최근 1주 방문자 통계 비교 (스크린샷 이미지) -->
+          <!-- SECTION 2: 월간 방문자 통계 비교 (스크린샷 이미지) -->
           <div class="section-card">
             <div class="section-header">
               <div class="section-title">
-                <span>📅</span> 최근 1주 방문자 통계 비교 (스크린샷)
+                <span>📅</span> 월간 방문자 통계 비교 (스크린샷)
               </div>
               <div class="badge-container">
                 <span class="badge badge-new">좌: 신규 블로그</span>
@@ -1130,12 +1130,12 @@
 
       document.getElementById("preview-new-img").innerHTML = `
         <span class="text-2xl">🟧</span>
-        <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [최근 1주 통계] 스크린샷</span>
+        <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [월간 통계] 스크린샷</span>
         <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
       `;
       document.getElementById("preview-old-img").innerHTML = `
         <span class="text-2xl">🟦</span>
-        <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [최근 1주 통계] 스크린샷</span>
+        <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [월간 통계] 스크린샷</span>
         <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
       `;
 
@@ -1175,7 +1175,7 @@
       } else {
         document.getElementById("preview-new-img").innerHTML = `
           <span class="text-2xl">🟧</span>
-          <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [최근 1주 통계] 스크린샷</span>
+          <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [월간 통계] 스크린샷</span>
           <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
         `;
       }
@@ -1188,7 +1188,7 @@
       } else {
         document.getElementById("preview-old-img").innerHTML = `
           <span class="text-2xl">🟦</span>
-          <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [최근 1주 통계] 스크린샷</span>
+          <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [월간 통계] 스크린샷</span>
           <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
         `;
       }
