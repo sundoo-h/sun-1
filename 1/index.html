@@ -420,39 +420,11 @@
           </div>
         </div>
 
-        <!-- 2. 최근 1주 방문자 통계 이미지 업로드 (신규 vs 기존) -->
-        <div class="space-y-2">
-          <label class="block font-bold text-gray-900">🖼️ 최근 1주 방문자 통계 스크린샷 이미지 업로드</label>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            <!-- 신규 블로그 이미지 -->
-            <div class="border-2 border-dashed border-orange-200 bg-orange-50/40 rounded-xl p-4 text-center hover:border-orange-400 transition-all flex flex-col items-center justify-center relative min-h-[130px]">
-              <input type="file" id="input-new-img" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview-new-img')">
-              <div id="preview-new-img" class="flex flex-col items-center space-y-1">
-                <span class="text-2xl">🟧</span>
-                <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [최근 1주 통계] 스크린샷</span>
-                <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-              </div>
-            </div>
-
-            <!-- 기존 블로그 이미지 -->
-            <div class="border-2 border-dashed border-indigo-200 bg-indigo-50/40 rounded-xl p-4 text-center hover:border-indigo-400 transition-all flex flex-col items-center justify-center relative min-h-[130px]">
-              <input type="file" id="input-old-img" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview-old-img')">
-              <div id="preview-old-img" class="flex flex-col items-center space-y-1">
-                <span class="text-2xl">🟦</span>
-                <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [최근 1주 통계] 스크린샷</span>
-                <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- 3. 일일 방문자 텍스트 데이터 입력 (신규 vs 기존) -->
+        <!-- 2. 월간 방문자 일별 텍스트 데이터 입력 (신규 vs 기존) -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">
-            <label class="block font-bold text-gray-900">📊 일일 방문자 텍스트 데이터 입력</label>
-            <span class="text-[10px] text-orange-600 font-bold">네이버 통계 꺾은선 차트 & 테이블 자동 생성</span>
+            <label class="block font-bold text-gray-900">📊 월간 방문자 일별 텍스트 데이터 입력</label>
+            <span class="text-[10px] text-orange-600 font-bold">네이버 통계 꺾은선 차트 & 수치 집계표 자동 생성</span>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             
@@ -579,6 +551,68 @@
       "갑상선저하증", "갑상선초음파 색깔", "게실염 노원구"
     ];
 
+    const seedNewDailyRaw = `2026.06.30. (화)\t45
+2026.06.29. (월)\t42
+2026.06.28. (일)\t38
+2026.06.27. (토)\t35
+2026.06.26. (금)\t41
+2026.06.25. (목)\t48
+2026.06.24. (수)\t52
+2026.06.23. (화)\t40
+2026.06.22. (월)\t39
+2026.06.21. (일)\t33
+2026.06.20. (토)\t30
+2026.06.19. (금)\t44
+2026.06.18. (목)\t46
+2026.06.17. (수)\t49
+2026.06.16. (화)\t43
+2026.06.15. (월)\t41
+2026.06.14. (일)\t36
+2026.06.13. (토)\t32
+2026.06.12. (금)\t39
+2026.06.11. (목)\t42
+2026.06.10. (수)\t47
+2026.06.09. (화)\t40
+2026.06.08. (월)\t38
+2026.06.07. (일)\t31
+2026.06.06. (토)\t29
+2026.06.05. (금)\t37
+2026.06.04. (목)\t41
+2026.06.03. (수)\t44
+2026.06.02. (화)\t39
+2026.06.01. (월)\t36`;
+
+    const seedOldDailyRaw = `2026.06.30. (화)\t28
+2026.06.29. (월)\t26
+2026.06.28. (일)\t22
+2026.06.27. (토)\t19
+2026.06.26. (금)\t25
+2026.06.25. (목)\t31
+2026.06.24. (수)\t33
+2026.06.23. (화)\t27
+2026.06.22. (월)\t24
+2026.06.21. (일)\t20
+2026.06.20. (토)\t18
+2026.06.19. (금)\t26
+2026.06.18. (목)\t29
+2026.06.17. (수)\t30
+2026.06.16. (화)\t25
+2026.06.15. (월)\t23
+2026.06.14. (일)\t21
+2026.06.13. (토)\t17
+2026.06.12. (금)\t24
+2026.06.11. (목)\t27
+2026.06.10. (수)\t29
+2026.06.09. (화)\t24
+2026.06.08. (월)\t22
+2026.06.07. (일)\t19
+2026.06.06. (토)\t16
+2026.06.05. (금)\t23
+2026.06.04. (목)\t25
+2026.06.03. (수)\t27
+2026.06.02. (화)\t24
+2026.06.01. (월)\t22`;
+
     const initialReports = [
       {
         id: "2026-06",
@@ -587,11 +621,11 @@
         description: "신규 블로그 vs 기존 블로그 유입 키워드 및 방문자 통계 100% 비교 분석",
         category: "신규 vs 기존 비교",
         memo: "",
-        showAiSection: true, // 26년 6월은 네이버 AI 노출 섹션 포함
-        images: {
-          day: "/day.jpg",
-          week: "/week.jpg"
-        },
+        showAiSection: true,
+        newDailyRaw: seedNewDailyRaw,
+        oldDailyRaw: seedOldDailyRaw,
+        newDailyList: parseDailyText(seedNewDailyRaw),
+        oldDailyList: parseDailyText(seedOldDailyRaw),
         newKeywords: seedNewKeywords,
         oldKeywords: seedOldKeywords
       }
@@ -672,114 +706,213 @@
       return text.split('\n').map(line => {
         return line.split(',').map(item => stripPercentage(item)).join(', ');
       }).join('\n');
-    }
-
-    function normalize(str) {
-      if (!str) return "";
-      const cleaned = stripPercentage(str);
-      return cleaned.toLowerCase().replace(/\s+/g, "").replace(/,/g, "");
-    }
-
-    function hasPriorityPrefix(str) {
-      const trimmed = stripPercentage(str);
-      return trimmed.startsWith("노원") || trimmed.startsWith("노원역") || trimmed.startsWith("노원구");
-    }
-
-    function processKeywords(list, otherListNormalized) {
-      const prioGroup = [];
-      const normalGroup = [];
-
-      (list || []).forEach(rawKw => {
-        const kw = stripPercentage(rawKw);
-        if (!kw) return;
-        const norm = normalize(kw);
-        const isDup = otherListNormalized.includes(norm);
-        const itemObj = { original: kw, normalized: norm, isDuplicate: isDup };
-
-        if (hasPriorityPrefix(kw)) {
-          prioGroup.push(itemObj);
-        } else {
-          normalGroup.push(itemObj);
-        }
-      });
-
-      prioGroup.sort((a, b) => a.original.localeCompare(b.original, 'ko'));
-      normalGroup.sort((a, b) => a.original.localeCompare(b.original, 'ko'));
-
-      return [...prioGroup, ...normalGroup];
-    }
-
+       // ----------------------------------------------------
+    // 3-1. Monthly Visitor Statistics Renderer (월간 방문자 통계 & 꺾은선 차트)
     // ----------------------------------------------------
-    // 4. Board & Report UI Rendering
-    // ----------------------------------------------------
-    function renderBoard() {
-      const tbody = document.getElementById("board-post-list");
-      const badge = document.getElementById("board-count-badge");
-      tbody.innerHTML = "";
-      badge.innerText = `총 ${monthlyReports.length}건의 리포트`;
+    function renderMonthlyVisitorSection(rep) {
+      const newList = rep.newDailyList || [];
+      const oldList = rep.oldDailyList || [];
 
-      monthlyReports.forEach((rep, idx) => {
-        const isSelected = rep.id === currentSelectedId;
-        const bgClass = isSelected ? "bg-orange-50/70 border-l-4 border-l-orange-500" : "hover:bg-gray-50";
-        const tr = document.createElement("tr");
-        tr.className = `transition-colors cursor-pointer group ${bgClass}`;
-        
-        // 삭제 버튼 (기본 26년 6월 이외에 직접 추가한 항목만 가능)
-        const isDeletable = rep.id !== "2026-06";
-        const deleteBtnHtml = isDeletable 
-          ? `<button onclick="deleteReport(event, '${rep.id}')" class="bg-gray-200 hover:bg-red-500 hover:text-white text-gray-600 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ml-1.5">🗑️ 삭제</button>` 
-          : '';
-
-        tr.innerHTML = `
-          <td class="py-3.5 px-4 text-center font-bold ${isSelected ? 'text-orange-600 font-extrabold' : 'text-gray-400'}">${monthlyReports.length - idx}</td>
-          <td class="py-3.5 px-4">
-            <div class="flex items-center gap-2">
-              <span class="font-extrabold ${isSelected ? 'text-orange-600' : 'text-gray-900 group-hover:text-orange-600'} text-sm">${rep.title}</span>
-              ${idx === monthlyReports.length - 1 ? '<span class="bg-red-500 text-white text-[10px] px-1.5 py-0.2 rounded font-black">NEW</span>' : ''}
+      if (newList.length === 0 && oldList.length === 0) {
+        return `
+          <div class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <span>📊</span> ${rep.title} 월간 방문자 통계
+              </div>
             </div>
-            <div class="text-[11px] text-gray-400 mt-0.5">${rep.description || '신규 블로그 vs 기존 블로그 비교 리포트'}</div>
-          </td>
-          <td class="py-3.5 px-4 text-center">
-            <span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full text-[11px] font-bold border border-indigo-100">
-              ${rep.category || '신규 vs 기존 비교'}
-            </span>
-          </td>
-          <td class="py-3.5 px-4 text-center whitespace-nowrap">
-            <button onclick="selectReport('${rep.id}')" class="${isSelected ? 'bg-orange-600 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'} px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm">
-              ${isSelected ? '선택됨' : '👁️ 리포트 보기'}
-            </button>
-            <button onclick="openEditModal(event, '${rep.id}')" class="bg-amber-100 hover:bg-amber-500 hover:text-white text-amber-800 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ml-1 shadow-sm">
-              ✏️ 수정
-            </button>
-            ${deleteBtnHtml}
-          </td>
+            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-gray-400 font-bold text-xs leading-relaxed">
+              💡 월간 방문자 텍스트 데이터가 아직 등록되지 않았습니다.<br>
+              <span class="text-orange-600 font-extrabold">[✏️ 이 리포트 내용 수정하기]</span> 버튼을 누르고 네이버 통계 텍스트를 붙여넣으시면 월간 총 방문자 집계, 꺾은선 추이 그래프, 일별 수치표가 자동 생성됩니다.
+            </div>
+          </div>
         `;
-        tr.onclick = (e) => {
-          if (!e.target.closest('button')) selectReport(rep.id);
-        };
-        tbody.appendChild(tr);
-      });
-    }
-
-    function selectReport(id) {
-      currentSelectedId = id;
-      renderBoard();
-      renderReportView(id);
-    }
-
-    function deleteReport(e, id) {
-      e.stopPropagation();
-      const target = monthlyReports.find(r => r.id === id);
-      if (!target) return;
-      if (confirm(`'${target.title}' 리포트를 정말 삭제하시겠습니까?`)) {
-        monthlyReports = monthlyReports.filter(r => r.id !== id);
-        if (currentSelectedId === id) {
-          currentSelectedId = monthlyReports[0] ? monthlyReports[0].id : "";
-        }
-        saveReportsData();
-        renderBoard();
-        if (currentSelectedId) renderReportView(currentSelectedId);
       }
+
+      // 통계 집계 산출
+      const newSum = newList.reduce((acc, cur) => acc + cur.count, 0);
+      const oldSum = oldList.reduce((acc, cur) => acc + cur.count, 0);
+
+      const newAvg = newList.length ? Math.round(newSum / newList.length) : 0;
+      const oldAvg = oldList.length ? Math.round(oldSum / oldList.length) : 0;
+
+      const newMax = newList.length ? Math.max(...newList.map(d => d.count)) : 0;
+      const oldMax = oldList.length ? Math.max(...oldList.map(d => d.count)) : 0;
+
+      const diff = newSum - oldSum;
+      const diffPct = oldSum > 0 ? ((diff / oldSum) * 100).toFixed(1) : (newSum > 0 ? "100" : "0");
+
+      // 오름차순 데이터 (차트 렌더링용)
+      const ascNew = [...newList].reverse();
+      const ascOld = [...oldList].reverse();
+
+      const maxVal = Math.max(newMax, oldMax, 10);
+
+      // SVG 포인트 생성
+      const newPoints = ascNew.map((d, i) => {
+        const x = (i / Math.max(ascNew.length - 1, 1)) * 680 + 30;
+        const y = 140 - (d.count / (maxVal * 1.25)) * 110;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+
+      const oldPoints = ascOld.map((d, i) => {
+        const x = (i / Math.max(ascOld.length - 1, 1)) * 680 + 30;
+        const y = 140 - (d.count / (maxVal * 1.25)) * 110;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+
+      // 일별 비교 테이블 행 생성
+      const maxRowLength = Math.max(newList.length, oldList.length);
+      const tableRows = [];
+      for (let i = 0; i < maxRowLength; i++) {
+        const nItem = newList[i] || { date: oldList[i]?.date || '-', count: 0 };
+        const oItem = oldList[i] || { date: newList[i]?.date || '-', count: 0 };
+        const rowDate = nItem.date !== '-' ? nItem.date : oItem.date;
+        const rowDiff = nItem.count - oItem.count;
+        const rowDiffBadge = rowDiff > 0 
+          ? `<span class="text-green-600 font-extrabold bg-green-50 px-2 py-0.5 rounded border border-green-200">+${rowDiff}명</span>`
+          : (rowDiff < 0 ? `<span class="text-red-500 font-extrabold bg-red-50 px-2 py-0.5 rounded border border-red-200">${rowDiff}명</span>` : `<span class="text-gray-400 font-medium">동일</span>`);
+
+        tableRows.push(`
+          <tr class="hover:bg-orange-50/40 transition-colors border-b border-gray-100">
+            <td class="py-2.5 px-4 text-left font-bold text-gray-700">${rowDate}</td>
+            <td class="py-2.5 px-4 text-right font-extrabold text-orange-600">${nItem.count.toLocaleString()}명</td>
+            <td class="py-2.5 px-4 text-right font-extrabold text-indigo-600">${oItem.count.toLocaleString()}명</td>
+            <td class="py-2.5 px-4 text-center text-xs">${rowDiffBadge}</td>
+          </tr>
+        `);
+      }
+
+      return `
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <span>📊</span> ${rep.title} 월간 방문자 통계 (신규 vs 기존)
+            </div>
+            <div class="badge-container">
+              <span class="badge badge-new">🟧 신규 블로그</span>
+              <span class="badge badge-old">🟦 기존 블로그</span>
+            </div>
+          </div>
+
+          <!-- 월간 성과 요약 KPI 카운터 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+            
+            <!-- 신규 블로그 KPI -->
+            <div class="bg-gradient-to-br from-orange-50 to-amber-50/50 border border-orange-200/80 rounded-2xl p-4 shadow-sm">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-extrabold text-orange-700 text-xs flex items-center gap-1">🟧 신규 블로그 월간 총계</span>
+                <span class="text-[10px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full">월간 누적</span>
+              </div>
+              <div class="text-3xl font-black text-orange-600 mt-1">${newSum.toLocaleString()}<span class="text-base font-bold ml-1">명</span></div>
+              <div class="flex items-center gap-3 text-[11px] text-gray-600 mt-2 pt-2 border-t border-orange-200/60 font-semibold">
+                <span>일평균 <strong class="text-orange-700">${newAvg}명</strong></span>
+                <span class="text-gray-300">|</span>
+                <span>최고일 <strong class="text-orange-700">${newMax}명</strong></span>
+              </div>
+            </div>
+
+            <!-- 기존 블로그 KPI -->
+            <div class="bg-gradient-to-br from-indigo-50 to-blue-50/50 border border-indigo-200/80 rounded-2xl p-4 shadow-sm">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-extrabold text-indigo-700 text-xs flex items-center gap-1">🟦 기존 블로그 월간 총계</span>
+                <span class="text-[10px] bg-indigo-600 text-white font-bold px-2 py-0.5 rounded-full">월간 누적</span>
+              </div>
+              <div class="text-3xl font-black text-indigo-600 mt-1">${oldSum.toLocaleString()}<span class="text-base font-bold ml-1">명</span></div>
+              <div class="flex items-center gap-3 text-[11px] text-gray-600 mt-2 pt-2 border-t border-indigo-200/60 font-semibold">
+                <span>일평균 <strong class="text-indigo-700">${oldAvg}명</strong></span>
+                <span class="text-gray-300">|</span>
+                <span>최고일 <strong class="text-indigo-700">${oldMax}명</strong></span>
+              </div>
+            </div>
+
+            <!-- 유입 성과 비교 KPI -->
+            <div class="bg-gradient-to-br ${diff >= 0 ? 'from-emerald-50 to-teal-50/50 border-emerald-200' : 'from-rose-50 to-pink-50/50 border-rose-200'} border rounded-2xl p-4 shadow-sm">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-extrabold ${diff >= 0 ? 'text-emerald-700' : 'text-rose-700'} text-xs flex items-center gap-1">⚖️ 월간 유입 격차 (신규 - 기존)</span>
+                <span class="text-[10px] ${diff >= 0 ? 'bg-emerald-600' : 'bg-rose-500'} text-white font-bold px-2 py-0.5 rounded-full">${diff >= 0 ? '신규 우세' : '기존 우세'}</span>
+              </div>
+              <div class="text-3xl font-black ${diff >= 0 ? 'text-emerald-600' : 'text-rose-600'} mt-1">${diff >= 0 ? '+' : ''}${diff.toLocaleString()}<span class="text-base font-bold ml-1">명</span></div>
+              <div class="text-[11px] ${diff >= 0 ? 'text-emerald-700' : 'text-rose-700'} mt-2 pt-2 border-t ${diff >= 0 ? 'border-emerald-200/60' : 'border-rose-200/60'} font-bold">
+                기존 블로그 대비 <strong>${diff >= 0 ? '+' : ''}${diffPct}%</strong> ${diff >= 0 ? '더 많은 유입 달성 🚀' : '유입 차이'}
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 월간 일별 방문자 추이 꺾은선 그래프 (SVG Overlay) -->
+          <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm mb-5">
+            <div class="flex justify-between items-center mb-3">
+              <div>
+                <h4 class="font-extrabold text-gray-900 text-sm">📈 월간 일별 방문자 추이 비교 그래프</h4>
+                <p class="text-[11px] text-gray-400 mt-0.5">신규 블로그(주황색)와 기존 블로그(보라색)의 일별 방문자 수 변화 비교</p>
+              </div>
+              <div class="flex items-center gap-4 text-xs font-extrabold">
+                <span class="flex items-center gap-1.5 text-orange-600">
+                  <span class="w-3 h-3 rounded-full bg-orange-500 inline-block"></span> 신규 블로그
+                </span>
+                <span class="flex items-center gap-1.5 text-indigo-600">
+                  <span class="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span> 기존 블로그
+                </span>
+              </div>
+            </div>
+
+            <div class="w-full overflow-x-auto">
+              <svg viewBox="0 0 740 160" class="w-full min-w-[650px] h-44 overflow-visible">
+                <!-- Grid lines -->
+                <line x1="20" y1="30" x2="720" y2="30" stroke="#f1f5f9" stroke-dasharray="3,3" stroke-width="1"/>
+                <line x1="20" y1="70" x2="720" y2="70" stroke="#f1f5f9" stroke-dasharray="3,3" stroke-width="1"/>
+                <line x1="20" y1="110" x2="720" y2="110" stroke="#f1f5f9" stroke-dasharray="3,3" stroke-width="1"/>
+                <line x1="20" y1="145" x2="720" y2="145" stroke="#e2e8f0" stroke-width="1.5"/>
+
+                <!-- Polyline for Old Blog (Indigo) -->
+                ${ascOld.length > 0 ? `<polyline points="${oldPoints}" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
+
+                <!-- Polyline for New Blog (Orange) -->
+                ${ascNew.length > 0 ? `<polyline points="${newPoints}" fill="none" stroke="#f97316" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
+
+                <!-- Circles for Old Blog -->
+                ${ascOld.map((d, i) => {
+                  const x = (i / Math.max(ascOld.length - 1, 1)) * 680 + 30;
+                  const y = 140 - (d.count / (maxVal * 1.25)) * 110;
+                  return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="#ffffff" stroke="#4f46e5" stroke-width="2"><title>기존 블로그 (${d.date}): ${d.count}명</title></circle>`;
+                }).join('')}
+
+                <!-- Circles for New Blog -->
+                ${ascNew.map((d, i) => {
+                  const x = (i / Math.max(ascNew.length - 1, 1)) * 680 + 30;
+                  const y = 140 - (d.count / (maxVal * 1.25)) * 110;
+                  return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#ffffff" stroke="#f97316" stroke-width="2.5"><title>신규 블로그 (${d.date}): ${d.count}명</title></circle>`;
+                }).join('')}
+              </svg>
+            </div>
+          </div>
+
+          <!-- 월간 일별 방문자 상세 수치 비교 테이블 -->
+          <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="font-extrabold text-gray-900 text-sm">📅 월간 일별 방문자 상세 집계표</h4>
+              <span class="text-xs text-gray-400 font-medium">총 ${maxRowLength}일간 데이터</span>
+            </div>
+            <div class="max-h-72 overflow-y-auto rounded-xl border border-gray-200">
+              <table class="w-full text-center text-xs">
+                <thead class="bg-gray-100 text-gray-700 font-extrabold sticky top-0 border-b border-gray-200 shadow-sm">
+                  <tr>
+                    <th class="py-3 px-4 text-left">날짜</th>
+                    <th class="py-3 px-4 text-right text-orange-600">🟧 신규 블로그 방문자</th>
+                    <th class="py-3 px-4 text-right text-indigo-600">🟦 기존 블로그 방문자</th>
+                    <th class="py-3 px-4 text-center">유입 격차</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 font-medium bg-white">
+                  ${tableRows.join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      `;
     }
 
     // 상세 리포트 렌더링
@@ -799,123 +932,8 @@
       const processedNew = processKeywords(rep.newKeywords || [], normalizedOld);
       const processedOld = processKeywords(rep.oldKeywords || [], normalizedNew);
 
-      // 이미지 섹션 렌더링
-      let imageSectionHtml = "";
-      if (rep.id === "2026-06") {
-        // 26년 6월 샘플 (기존 통계 2장 이미지)
-        imageSectionHtml = `
-          <!-- SECTION 1: 일일방문자 통계 비교 -->
-          <div class="section-card">
-            <div class="section-header">
-              <div class="section-title">
-                <span>📊</span> 일일방문자 통계 비교
-              </div>
-              <div class="badge-container">
-                <span class="badge badge-new">좌: 신규 블로그</span>
-                <span class="badge badge-old">우: 기존 블로그</span>
-              </div>
-            </div>
-            
-            <div class="image-grid">
-              <div class="split-labels">
-                <div class="split-label-left">⬅️ 신규 블로그</div>
-                <div class="split-label-right">기존 블로그 ➡️</div>
-              </div>
-              <div class="img-wrapper">
-                <img src="${rep.images.day}" alt="일일 방문자 통계 비교">
-              </div>
-            </div>
-          </div>
-
-          <!-- SECTION 2: 최근 1주 방문자 통계 비교 -->
-          <div class="section-card">
-            <div class="section-header">
-              <div class="section-title">
-                <span>📅</span> 최근 1주 방문자 통계 비교
-              </div>
-              <div class="badge-container">
-                <span class="badge badge-new">좌: 신규 블로그</span>
-                <span class="badge badge-old">우: 기존 블로그</span>
-              </div>
-            </div>
-            
-            <div class="image-grid">
-              <div class="split-labels">
-                <div class="split-label-left">⬅️ 신규 블로그</div>
-                <div class="split-label-right">기존 블로그 ➡️</div>
-              </div>
-              <div class="img-wrapper">
-                <img src="${rep.images.week}" alt="최근 1주 방문자 통계 비교">
-              </div>
-            </div>
-          </div>
-        `;
-      } else {
-        // 글쓰기 입력으로 생성된 리포트
-        const newImgSrc = rep.images?.new || "";
-        const oldImgSrc = rep.images?.old || "";
-
-        const hasNewDaily = rep.newDailyList && rep.newDailyList.length > 0;
-        const hasOldDaily = rep.oldDailyList && rep.oldDailyList.length > 0;
-
-        const dailyCardsHtml = (hasNewDaily || hasOldDaily) ? `
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-            <div>${renderNaverDailyCard("🟧 신규 블로그 일일 방문자", rep.newDailyList || [], "orange")}</div>
-            <div>${renderNaverDailyCard("🟦 기존 블로그 일일 방문자", rep.oldDailyList || [], "indigo")}</div>
-          </div>
-        ` : `
-          <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-400 font-bold text-xs">
-            일일 방문자 텍스트 데이터가 등록되지 않았습니다. [✏️ 새 리포트 작성] 시 텍스트를 붙여넣으시면 꺾은선 차트와 테이블이 자동 생성됩니다.
-          </div>
-        `;
-
-        const weekImagesHtml = (newImgSrc || oldImgSrc) ? `
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-            <div class="img-wrapper shadow-sm border border-orange-200">
-              ${newImgSrc ? `<img src="${newImgSrc}" alt="신규 블로그 최근 1주 통계">` : `<div class="p-8 text-center text-orange-400 font-bold">신규 블로그 1주 스크린샷 미등록</div>`}
-            </div>
-            <div class="img-wrapper shadow-sm border border-indigo-200">
-              ${oldImgSrc ? `<img src="${oldImgSrc}" alt="기존 블로그 최근 1주 통계">` : `<div class="p-8 text-center text-indigo-400 font-bold">기존 블로그 1주 스크린샷 미등록</div>`}
-            </div>
-          </div>
-        ` : `
-          <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-400 font-bold text-xs">
-            최근 1주 방문자 스크린샷 이미지가 등록되지 않았습니다.
-          </div>
-        `;
-
-        imageSectionHtml = `
-          <!-- SECTION 1: 일일방문자 통계 비교 (텍스트 기반 차트 & 수치 테이블) -->
-          <div class="section-card">
-            <div class="section-header">
-              <div class="section-title">
-                <span>📊</span> 일일방문자 통계 비교 (네이버 차트 & 수치 테이블)
-              </div>
-              <div class="badge-container">
-                <span class="badge badge-new">좌: 신규 블로그</span>
-                <span class="badge badge-old">우: 기존 블로그</span>
-              </div>
-            </div>
-            
-            ${dailyCardsHtml}
-          </div>
-
-          <!-- SECTION 2: 최근 1주 방문자 통계 비교 (스크린샷 이미지) -->
-          <div class="section-card">
-            <div class="section-header">
-              <div class="section-title">
-                <span>📅</span> 최근 1주 방문자 통계 비교 (스크린샷)
-              </div>
-              <div class="badge-container">
-                <span class="badge badge-new">좌: 신규 블로그</span>
-                <span class="badge badge-old">우: 기존 블로그</span>
-              </div>
-            </div>
-            
-            ${weekImagesHtml}
-          </div>
-        `;
-      }
+      // 월간 방문자 통계 섹션 HTML
+      const monthlyVisitorSectionHtml = renderMonthlyVisitorSection(rep);
 
       // 네이버 AI 검색결과 섹션 (26년 6월만 노출, 26년 7월부터 미노출)
       const aiSectionHtml = rep.showAiSection ? `
@@ -935,7 +953,7 @@
         </div>
       ` : '';
 
-      // 메모 섹션 HTML 생성 ("일일방문자 통계 비교" 섹션 카드 위에 위치)
+      // 메모 섹션 HTML 생성
       const memoSectionHtml = `
         <div class="section-card">
           <div class="section-header">
@@ -972,7 +990,7 @@
         <header class="report-header relative">
           <div class="flex justify-center items-center gap-2 mb-3">
             <button onclick="openEditModal(event, '${rep.id}')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95">
-              ✏️ 이 리포트 내용 수정하기 (통계 이미지/일일방문자/키워드 편집)
+              ✏️ 이 리포트 내용 수정하기 (방문자통계/키워드/메모 편집)
             </button>
           </div>
           <h1>블로그 비교 분석 리포트</h1>
@@ -981,7 +999,7 @@
 
         ${memoSectionHtml}
 
-        ${imageSectionHtml}
+        ${monthlyVisitorSectionHtml}
 
         <!-- KEYWORD SECTION -->
         <div class="section-card">
@@ -1124,20 +1142,6 @@
       if (document.getElementById("input-memo")) document.getElementById("input-memo").value = "";
       if (document.getElementById("input-new-daily-text")) document.getElementById("input-new-daily-text").value = "";
       if (document.getElementById("input-old-daily-text")) document.getElementById("input-old-daily-text").value = "";
-      
-      uploadedNewImgBase64 = "";
-      uploadedOldImgBase64 = "";
-
-      document.getElementById("preview-new-img").innerHTML = `
-        <span class="text-2xl">🟧</span>
-        <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [최근 1주 통계] 스크린샷</span>
-        <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-      `;
-      document.getElementById("preview-old-img").innerHTML = `
-        <span class="text-2xl">🟦</span>
-        <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [최근 1주 통계] 스크린샷</span>
-        <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-      `;
 
       writeModal.classList.remove("hidden");
     }
@@ -1163,35 +1167,6 @@
       if (document.getElementById("input-memo")) document.getElementById("input-memo").value = rep.memo || "";
       if (document.getElementById("input-new-daily-text")) document.getElementById("input-new-daily-text").value = rep.newDailyRaw || "";
       if (document.getElementById("input-old-daily-text")) document.getElementById("input-old-daily-text").value = rep.oldDailyRaw || "";
-
-      uploadedNewImgBase64 = rep.images?.new || rep.images?.day || "";
-      uploadedOldImgBase64 = rep.images?.old || rep.images?.week || "";
-
-      if (uploadedNewImgBase64) {
-        document.getElementById("preview-new-img").innerHTML = `
-          <img src="${uploadedNewImgBase64}" class="max-h-24 rounded shadow border border-gray-200 mb-1">
-          <span class="text-[10px] text-green-600 font-bold">✅ 기존 이미지 등록됨 (클릭하여 변경)</span>
-        `;
-      } else {
-        document.getElementById("preview-new-img").innerHTML = `
-          <span class="text-2xl">🟧</span>
-          <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [최근 1주 통계] 스크린샷</span>
-          <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-        `;
-      }
-
-      if (uploadedOldImgBase64) {
-        document.getElementById("preview-old-img").innerHTML = `
-          <img src="${uploadedOldImgBase64}" class="max-h-24 rounded shadow border border-gray-200 mb-1">
-          <span class="text-[10px] text-indigo-600 font-bold">✅ 기존 이미지 등록됨 (클릭하여 변경)</span>
-        `;
-      } else {
-        document.getElementById("preview-old-img").innerHTML = `
-          <span class="text-2xl">🟦</span>
-          <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [최근 1주 통계] 스크린샷</span>
-          <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-        `;
-      }
 
       writeModal.classList.remove("hidden");
     }
@@ -1240,9 +1215,6 @@
           rep.oldDailyRaw = rawOldDaily;
           rep.newDailyList = newDailyList;
           rep.oldDailyList = oldDailyList;
-          if (!rep.images) rep.images = {};
-          if (uploadedNewImgBase64) rep.images.new = uploadedNewImgBase64;
-          if (uploadedOldImgBase64) rep.images.old = uploadedOldImgBase64;
           rep.newKeywords = newKw;
           rep.oldKeywords = oldKw;
 
@@ -1263,10 +1235,6 @@
           newDailyList: newDailyList,
           oldDailyList: oldDailyList,
           showAiSection: false, // 26년 7월부터는 네이버 AI 노출 섹션 미노출
-          images: {
-            new: uploadedNewImgBase64,
-            old: uploadedOldImgBase64
-          },
           newKeywords: newKw,
           oldKeywords: oldKw
         };
