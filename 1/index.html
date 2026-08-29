@@ -420,35 +420,7 @@
           </div>
         </div>
 
-        <!-- 2. 월간 방문자 통계 이미지 업로드 (신규 vs 기존) -->
-        <div class="space-y-2">
-          <label class="block font-bold text-gray-900">🖼️ 월간 방문자 통계 스크린샷 이미지 업로드</label>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            <!-- 신규 블로그 이미지 -->
-            <div class="border-2 border-dashed border-orange-200 bg-orange-50/40 rounded-xl p-4 text-center hover:border-orange-400 transition-all flex flex-col items-center justify-center relative min-h-[130px]">
-              <input type="file" id="input-new-img" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview-new-img')">
-              <div id="preview-new-img" class="flex flex-col items-center space-y-1">
-                <span class="text-2xl">🟧</span>
-                <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [월간 통계] 스크린샷</span>
-                <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-              </div>
-            </div>
-
-            <!-- 기존 블로그 이미지 -->
-            <div class="border-2 border-dashed border-indigo-200 bg-indigo-50/40 rounded-xl p-4 text-center hover:border-indigo-400 transition-all flex flex-col items-center justify-center relative min-h-[130px]">
-              <input type="file" id="input-old-img" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview-old-img')">
-              <div id="preview-old-img" class="flex flex-col items-center space-y-1">
-                <span class="text-2xl">🟦</span>
-                <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [월간 통계] 스크린샷</span>
-                <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- 3. 일일 방문자 텍스트 데이터 입력 (신규 vs 기존) -->
+        <!-- 2. 일일 방문자 텍스트 데이터 입력 (신규 vs 기존) -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">
             <label class="block font-bold text-gray-900">📊 일일 방문자 텍스트 데이터 입력</label>
@@ -1161,55 +1133,6 @@
     }
 
     // ----------------------------------------------------
-    // 5. Image Compression & File Handling
-    // ----------------------------------------------------
-    let uploadedNewImgBase64 = "";
-    let uploadedOldImgBase64 = "";
-
-    function previewImage(inputEl, previewTargetId) {
-      const file = inputEl.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          // Canvas 기반 최적화 압축 (용량 절감)
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const maxDim = 1200;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          const base64 = canvas.toDataURL('image/jpeg', 0.85);
-
-          if (previewTargetId === 'preview-new-img') uploadedNewImgBase64 = base64;
-          if (previewTargetId === 'preview-old-img') uploadedOldImgBase64 = base64;
-
-          const previewEl = document.getElementById(previewTargetId);
-          previewEl.innerHTML = `
-            <img src="${base64}" class="max-h-24 rounded shadow border border-gray-200 mb-1">
-            <span class="text-[10px] text-green-600 font-bold">✅ 업로드 완료 (클릭하여 변경)</span>
-          `;
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    // ----------------------------------------------------
     // 6. Write & Edit Modal Management
     // ----------------------------------------------------
     const writeModal = document.getElementById("write-modal");
@@ -1241,20 +1164,6 @@
       if (document.getElementById("input-old-daily-text")) document.getElementById("input-old-daily-text").value = "";
       if (document.getElementById("input-new-monthly-text")) document.getElementById("input-new-monthly-text").value = "";
       if (document.getElementById("input-old-monthly-text")) document.getElementById("input-old-monthly-text").value = "";
-      
-      uploadedNewImgBase64 = "";
-      uploadedOldImgBase64 = "";
-
-      document.getElementById("preview-new-img").innerHTML = `
-        <span class="text-2xl">🟧</span>
-        <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [월간 통계] 스크린샷</span>
-        <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-      `;
-      document.getElementById("preview-old-img").innerHTML = `
-        <span class="text-2xl">🟦</span>
-        <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [월간 통계] 스크린샷</span>
-        <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-      `;
 
       writeModal.classList.remove("hidden");
     }
@@ -1282,35 +1191,6 @@
       if (document.getElementById("input-old-daily-text")) document.getElementById("input-old-daily-text").value = rep.oldDailyRaw || "";
       if (document.getElementById("input-new-monthly-text")) document.getElementById("input-new-monthly-text").value = rep.newMonthlyRaw || "";
       if (document.getElementById("input-old-monthly-text")) document.getElementById("input-old-monthly-text").value = rep.oldMonthlyRaw || "";
-
-      uploadedNewImgBase64 = rep.images?.new || rep.images?.day || "";
-      uploadedOldImgBase64 = rep.images?.old || rep.images?.week || "";
-
-      if (uploadedNewImgBase64) {
-        document.getElementById("preview-new-img").innerHTML = `
-          <img src="${uploadedNewImgBase64}" class="max-h-24 rounded shadow border border-gray-200 mb-1">
-          <span class="text-[10px] text-green-600 font-bold">✅ 기존 이미지 등록됨 (클릭하여 변경)</span>
-        `;
-      } else {
-        document.getElementById("preview-new-img").innerHTML = `
-          <span class="text-2xl">🟧</span>
-          <span class="font-extrabold text-orange-700 text-xs">신규 블로그 [월간 통계] 스크린샷</span>
-          <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-        `;
-      }
-
-      if (uploadedOldImgBase64) {
-        document.getElementById("preview-old-img").innerHTML = `
-          <img src="${uploadedOldImgBase64}" class="max-h-24 rounded shadow border border-gray-200 mb-1">
-          <span class="text-[10px] text-indigo-600 font-bold">✅ 기존 이미지 등록됨 (클릭하여 변경)</span>
-        `;
-      } else {
-        document.getElementById("preview-old-img").innerHTML = `
-          <span class="text-2xl">🟦</span>
-          <span class="font-extrabold text-indigo-700 text-xs">기존 블로그 [월간 통계] 스크린샷</span>
-          <span class="text-[10px] text-gray-400">PNG, JPG 이미지 파일</span>
-        `;
-      }
 
       writeModal.classList.remove("hidden");
     }
@@ -1367,9 +1247,6 @@
           rep.oldMonthlyRaw = rawOldMonthly;
           rep.newMonthlyList = newMonthlyList;
           rep.oldMonthlyList = oldMonthlyList;
-          if (!rep.images) rep.images = {};
-          if (uploadedNewImgBase64) rep.images.new = uploadedNewImgBase64;
-          if (uploadedOldImgBase64) rep.images.old = uploadedOldImgBase64;
           rep.newKeywords = newKw;
           rep.oldKeywords = oldKw;
 
@@ -1394,10 +1271,6 @@
           newMonthlyList: newMonthlyList,
           oldMonthlyList: oldMonthlyList,
           showAiSection: false, // 26년 7월부터는 네이버 AI 노출 섹션 미노출
-          images: {
-            new: uploadedNewImgBase64,
-            old: uploadedOldImgBase64
-          },
           newKeywords: newKw,
           oldKeywords: oldKw
         };
