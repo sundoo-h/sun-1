@@ -936,9 +936,6 @@
       const hasNewMonthly = rep.newMonthlyList && rep.newMonthlyList.length > 0;
       const hasOldMonthly = rep.oldMonthlyList && rep.oldMonthlyList.length > 0;
 
-      const newImgSrc = rep.images?.new || "";
-      const oldImgSrc = rep.images?.old || "";
-
       const monthlySectionHtml = (hasNewMonthly || hasOldMonthly) ? `
         <div class="section-card">
           <div class="section-header">
@@ -954,40 +951,6 @@
             <div>${renderNaverStatCard("🟧 신규 블로그 월간 방문자", rep.newMonthlyList || [], "orange", true)}</div>
             <div>${renderNaverStatCard("🟦 기존 블로그 월간 방문자", rep.oldMonthlyList || [], "indigo", true)}</div>
           </div>
-          ${(newImgSrc || oldImgSrc) ? `
-            <div class="mt-4 pt-4 border-t border-gray-100">
-              <div class="text-xs font-bold text-gray-500 mb-2">🖼️ 월간 통계 스크린샷 이미지</div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                <div class="img-wrapper shadow-sm border border-orange-200">
-                  ${newImgSrc ? `<img src="${newImgSrc}" alt="신규 블로그 월간 통계 스크린샷">` : ''}
-                </div>
-                <div class="img-wrapper shadow-sm border border-indigo-200">
-                  ${oldImgSrc ? `<img src="${oldImgSrc}" alt="기존 블로그 월간 통계 스크린샷">` : ''}
-                </div>
-              </div>
-            </div>
-          ` : ''}
-        </div>
-      ` : (rep.images?.week || newImgSrc || oldImgSrc ? `
-        <div class="section-card">
-          <div class="section-header">
-            <div class="section-title">
-              <span>📅</span> 월간 방문자 통계 비교
-            </div>
-            <div class="badge-container">
-              <span class="badge badge-new">좌: 신규 블로그</span>
-              <span class="badge badge-old">우: 기존 블로그</span>
-            </div>
-          </div>
-          <div class="image-grid">
-            <div class="split-labels">
-              <div class="split-label-left">⬅️ 신규 블로그</div>
-              <div class="split-label-right">기존 블로그 ➡️</div>
-            </div>
-            <div class="img-wrapper">
-              <img src="${rep.images?.week || newImgSrc}" alt="월간 방문자 통계 비교">
-            </div>
-          </div>
         </div>
       ` : `
         <div class="section-card">
@@ -1000,7 +963,7 @@
             월간 방문자 텍스트 데이터가 등록되지 않았습니다. [✏️ 이 리포트 내용 수정하기] 시 텍스트를 붙여넣으시면 꺾은선 차트와 테이블이 자동 생성됩니다.
           </div>
         </div>
-      `);
+      `;
 
       // 네이버 AI 검색결과 섹션 (26년 6월만 노출, 26년 7월부터 미노출)
       const aiSectionHtml = rep.showAiSection ? `
