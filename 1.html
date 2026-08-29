@@ -397,7 +397,7 @@
       <!-- Modal Header -->
       <div class="bg-gradient-to-r from-orange-500 to-amber-500 p-5 text-white flex justify-between items-center shrink-0">
         <div>
-          <h3 class="text-lg font-black flex items-center gap-2">
+          <h3 id="write-modal-title" class="text-lg font-black flex items-center gap-2">
             <span>✏️</span> 월간 통계 리포트 등록
           </h3>
           <p class="text-xs text-orange-100 mt-0.5">신규/기존 블로그의 이미지와 키워드를 입력하시면 동일한 포맷의 비교 분석 리포트가 완성됩니다.</p>
@@ -740,6 +740,9 @@
             <button onclick="selectReport('${rep.id}')" class="${isSelected ? 'bg-orange-600 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'} px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm">
               ${isSelected ? '선택됨' : '👁️ 리포트 보기'}
             </button>
+            <button onclick="openEditModal(event, '${rep.id}')" class="bg-amber-100 hover:bg-amber-500 hover:text-white text-amber-800 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ml-1 shadow-sm">
+              ✏️ 수정
+            </button>
             ${deleteBtnHtml}
           </td>
         `;
@@ -958,7 +961,12 @@
 
       // 전체 리포트 템플릿 결합
       container.innerHTML = `
-        <header class="report-header">
+        <header class="report-header relative">
+          <div class="flex justify-center items-center gap-2 mb-3">
+            <button onclick="openEditModal(event, '${rep.id}')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95">
+              ✏️ 이 리포트 내용 수정하기 (통계 이미지/일일방문자/키워드 편집)
+            </button>
+          </div>
           <h1>블로그 비교 분석 리포트</h1>
           <div class="subtitle">신규 블로그와 기존 블로그의 유입 및 성과 비교</div>
         </header>
