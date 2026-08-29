@@ -619,6 +619,11 @@
         monthlyReports = [...initialReports];
       }
 
+      // 디폴트 선택 게시글을 가장 최근 게시글(마지막 항목)로 설정
+      if (Array.isArray(monthlyReports) && monthlyReports.length > 0) {
+        currentSelectedId = monthlyReports[monthlyReports.length - 1].id;
+      }
+
       // 2) 로컬 백서버 연동 시 동기화 (optional)
       fetch('/api/monthly-reports')
         .then(r => r.json())
@@ -626,6 +631,9 @@
           if (data.success && Array.isArray(data.reports) && data.reports.length > 0) {
             monthlyReports = data.reports;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(monthlyReports));
+            if (monthlyReports.length > 0) {
+              currentSelectedId = monthlyReports[monthlyReports.length - 1].id;
+            }
             renderBoard();
             renderReportView(currentSelectedId);
           }
@@ -1429,6 +1437,9 @@
     // ----------------------------------------------------
     document.addEventListener("DOMContentLoaded", () => {
       loadReportsData();
+      if (Array.isArray(monthlyReports) && monthlyReports.length > 0) {
+        currentSelectedId = monthlyReports[monthlyReports.length - 1].id;
+      }
       renderBoard();
       renderReportView(currentSelectedId);
       setupKeywordAutoClean();
