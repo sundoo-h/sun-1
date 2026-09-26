@@ -420,36 +420,7 @@
           </div>
         </div>
 
-        <!-- 2. 일일 방문자 텍스트 데이터 입력 (신규 vs 기존) -->
-        <div class="space-y-2">
-          <div class="flex justify-between items-center">
-            <label class="block font-bold text-gray-900">📊 일일 방문자 텍스트 데이터 입력</label>
-            <span class="text-[10px] text-orange-600 font-bold">네이버 통계 꺾은선 차트 & 테이블 자동 생성</span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            <!-- 신규 블로그 일일 방문자 텍스트 -->
-            <div>
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-orange-600">🟧 신규 블로그 일일 방문자 텍스트</span>
-                <span class="text-[10px] text-gray-400">날짜 및 전체 수치 텍스트 복사붙여넣기</span>
-              </div>
-              <textarea id="input-new-daily-text" rows="5" class="w-full px-3.5 py-2.5 border border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-xs font-mono leading-relaxed bg-white" placeholder="예시 붙여넣기:&#10;2026.07.31. (금)&#9;16&#10;2026.07.30. (목)&#9;16..."></textarea>
-            </div>
-
-            <!-- 기존 블로그 일일 방문자 텍스트 -->
-            <div>
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-indigo-600">🟦 기존 블로그 일일 방문자 텍스트</span>
-                <span class="text-[10px] text-gray-400">날짜 및 전체 수치 텍스트 복사붙여넣기</span>
-              </div>
-              <textarea id="input-old-daily-text" rows="5" class="w-full px-3.5 py-2.5 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-mono leading-relaxed bg-white" placeholder="예시 붙여넣기:&#10;2026.07.31. (금)&#9;28&#10;2026.07.30. (목)&#9;20..."></textarea>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- 4. 월간 방문자 텍스트 데이터 입력 (신규 vs 기존) -->
+        <!-- 2. 월간 방문자 텍스트 데이터 입력 (신규 vs 기존) -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">
             <label class="block font-bold text-gray-900">📅 월간 방문자 텍스트 데이터 입력</label>
@@ -878,61 +849,61 @@
       const processedNew = processKeywords(rep.newKeywords || [], normalizedOld);
       const processedOld = processKeywords(rep.oldKeywords || [], normalizedNew);
 
-      // 1) 일일 방문자 통계 섹션 렌더링
-      const hasNewDaily = rep.newDailyList && rep.newDailyList.length > 0;
-      const hasOldDaily = rep.oldDailyList && rep.oldDailyList.length > 0;
+      // 8월 게시글이거나 향후 신규 추가되는 리포트인지 판별 (8월 게시글 또는 신규 리포트일 경우 일일방문자 통계 제외)
+      const isAugustOrNewer = (rep.title && (rep.title.includes('8월') || rep.title.includes('8'))) || (rep.id !== "2026-06" && rep.id !== "2026-07");
 
-      const dailySectionHtml = (hasNewDaily || hasOldDaily) ? `
-        <div class="section-card">
-          <div class="section-header">
-            <div class="section-title">
-              <span>📊</span> 일일방문자 통계 비교 (네이버 차트 & 수치 테이블)
-            </div>
-            <div class="badge-container">
-              <span class="badge badge-new">좌: 신규 블로그</span>
-              <span class="badge badge-old">우: 기존 블로그</span>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-            <div>${renderNaverStatCard("🟧 신규 블로그 일일 방문자", rep.newDailyList || [], "orange", false)}</div>
-            <div>${renderNaverStatCard("🟦 기존 블로그 일일 방문자", rep.oldDailyList || [], "indigo", false)}</div>
-          </div>
-        </div>
-      ` : (rep.images?.day ? `
-        <div class="section-card">
-          <div class="section-header">
-            <div class="section-title">
-              <span>📊</span> 일일방문자 통계 비교
-            </div>
-            <div class="badge-container">
-              <span class="badge badge-new">좌: 신규 블로그</span>
-              <span class="badge badge-old">우: 기존 블로그</span>
-            </div>
-          </div>
-          <div class="image-grid">
-            <div class="split-labels">
-              <div class="split-label-left">⬅️ 신규 블로그</div>
-              <div class="split-label-right">기존 블로그 ➡️</div>
-            </div>
-            <div class="img-wrapper">
-              <img src="${rep.images.day}" alt="일일 방문자 통계 비교">
-            </div>
-          </div>
-        </div>
-      ` : `
-        <div class="section-card">
-          <div class="section-header">
-            <div class="section-title">
-              <span>📊</span> 일일방문자 통계 비교
-            </div>
-          </div>
-          <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-400 font-bold text-xs">
-            일일 방문자 텍스트 데이터가 등록되지 않았습니다. [✏️ 이 리포트 내용 수정하기] 시 일일 텍스트를 붙여넣으시면 꺾은선 차트와 테이블이 자동 생성됩니다.
-          </div>
-        </div>
-      `);
+      // 1) 일일 방문자 통계 섹션 렌더링 (8월 및 향후 신규 리포트에서는 전면 제거)
+      let dailySectionHtml = '';
+      if (!isAugustOrNewer && (rep.id === "2026-06" || rep.id === "2026-07")) {
+        const hasNewDaily = rep.newDailyList && rep.newDailyList.length > 0;
+        const hasOldDaily = rep.oldDailyList && rep.oldDailyList.length > 0;
 
-      // 2) 월간 방문자 통계 섹션 렌더링
+        if (hasNewDaily || hasOldDaily) {
+          dailySectionHtml = `
+            <div class="section-card">
+              <div class="section-header">
+                <div class="section-title">
+                  <span>📊</span> 일일방문자 통계 비교 (네이버 차트 & 수치 테이블)
+                </div>
+                <div class="badge-container">
+                  <span class="badge badge-new">좌: 신규 블로그</span>
+                  <span class="badge badge-old">우: 기존 블로그</span>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <div>${renderNaverStatCard("🟧 신규 블로그 일일 방문자", rep.newDailyList || [], "orange", false)}</div>
+                <div>${renderNaverStatCard("🟦 기존 블로그 일일 방문자", rep.oldDailyList || [], "indigo", false)}</div>
+              </div>
+            </div>
+          `;
+        } else if (rep.images?.day) {
+          dailySectionHtml = `
+            <div class="section-card">
+              <div class="section-header">
+                <div class="section-title">
+                  <span>📊</span> 일일방문자 통계 비교
+                </div>
+                <div class="badge-container">
+                  <span class="badge badge-new">좌: 신규 블로그</span>
+                  <span class="badge badge-old">우: 기존 블로그</span>
+                </div>
+              </div>
+              <div class="image-grid">
+                <div class="split-labels">
+                  <div class="split-label-left">⬅️ 신규 블로그</div>
+                  <div class="split-label-right">기존 블로그 ➡️</div>
+                </div>
+                <div class="img-wrapper">
+                  <img src="${rep.images.day}" alt="일일 방문자 통계 비교">
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // 2) 월간 방문자 통계 섹션 렌더링 (8월 및 향후 신규 리포트의 경우 제목: "월간방문자 통계")
+      const sectionTitleText = isAugustOrNewer ? "월간방문자 통계" : "월간방문자 통계 비교";
       const hasNewMonthly = rep.newMonthlyList && rep.newMonthlyList.length > 0;
       const hasOldMonthly = rep.oldMonthlyList && rep.oldMonthlyList.length > 0;
 
@@ -940,7 +911,7 @@
         <div class="section-card">
           <div class="section-header">
             <div class="section-title">
-              <span>📅</span> 월간방문자 통계 비교 (네이버 차트 & 수치 테이블)
+              <span>📅</span> ${sectionTitleText}
             </div>
             <div class="badge-container">
               <span class="badge badge-new">좌: 신규 블로그</span>
@@ -956,7 +927,7 @@
         <div class="section-card">
           <div class="section-header">
             <div class="section-title">
-              <span>📅</span> 월간방문자 통계 비교
+              <span>📅</span> ${sectionTitleText}
             </div>
           </div>
           <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-400 font-bold text-xs">
