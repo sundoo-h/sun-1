@@ -1761,7 +1761,7 @@
     const STORAGE_KEY = "sun1_monthly_reports_v4";
 
     function loadReportsData() {
-      // 1) initialReports(6, 7, 8, 9월 등) 기본 보장
+      // 1) initialReports(6, 7, 8, 9월) 기본 보장
       const reportMap = new Map();
       initialReports.forEach(r => reportMap.set(r.id, r));
 
@@ -1785,35 +1785,6 @@
 
       // 디폴트 선택 게시글을 가장 최근 게시글(마지막 항목)로 설정
       currentSelectedId = monthlyReports.length > 0 ? monthlyReports[monthlyReports.length - 1].id : "2026-06";
-    }
-
-      // 2) 로컬 백서버 연동 시 동기화 (optional)
-      fetch('/api/monthly-reports')
-        .then(r => r.json())
-        .then(data => {
-          if (data.success && Array.isArray(data.reports) && data.reports.length > 0) {
-            monthlyReports = data.reports;
-            monthlyReports.forEach(rep => {
-              if (rep.id === "2026-06") {
-                rep.newMonthlyRaw = seedNewMonthlyRaw;
-                rep.oldMonthlyRaw = seedOldMonthlyRaw;
-              }
-              if (rep.newMonthlyRaw && (!rep.newMonthlyList || rep.newMonthlyList.length === 0)) {
-                rep.newMonthlyList = parseVisitorText(rep.newMonthlyRaw);
-              }
-              if (rep.oldMonthlyRaw && (!rep.oldMonthlyList || rep.oldMonthlyList.length === 0)) {
-                rep.oldMonthlyList = parseVisitorText(rep.oldMonthlyRaw);
-              }
-            });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(monthlyReports));
-            if (monthlyReports.length > 0) {
-              currentSelectedId = monthlyReports[monthlyReports.length - 1].id;
-            }
-            renderBoard();
-            renderReportView(currentSelectedId);
-          }
-        })
-        .catch(() => {});
     }
 
     function saveReportsData(syncBackend = true) {
